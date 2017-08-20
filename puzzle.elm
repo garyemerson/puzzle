@@ -26,7 +26,7 @@ main =
 
 
 type alias Model =
-    { pos : Position
+    { position : Position
     , drag : Maybe Drag
     , winSize : WinSize
     }
@@ -66,14 +66,14 @@ update msg model =
         WinResize winSize ->
             ( { model | winSize = (log "WinResize" winSize) }, Cmd.none )
 
-        DragStart pos ->
-            ( { model | dragging = True }, Cmd.none )
+        DragStart position ->
+            ( { model | drag = Just (Drag position position) }, Cmd.none )
 
-        DragAt pos ->
-            ( { model | pos = pos }, Cmd.none )
+        DragAt position ->
+            ( { model | drag = Maybe.map (\drag -> Drag drag.start position) model.drag }, Cmd.none )
 
-        DragEnd pos ->
-            ( { model | dragging = False }, Cmd.none )
+        DragEnd position ->
+            ( { model | drag = Nothing, position = getPosition model }, Cmd.none )
 
 
 
@@ -82,10 +82,12 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.dragging then
-        Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd, Window.resizes WinResize ]
-    else
-        Window.resizes WinResize
+    case model.drag of
+        Just drag ->
+            Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd, Window.resizes WinResize ]
+
+        Nothing ->
+            Window.resizes WinResize
 
 
 
@@ -94,31 +96,35 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    svg [ color "red", display "block", width (toString model.winSize.width), height (toString model.winSize.height) ]
-        [ circle
-            [ onMouseDown
-            , Svg.Attributes.cursor "move"
-            , cx (toString model.pos.x)
-            , cy (toString model.pos.y)
-            , r "50"
-            , fill "#0B79CE"
-            ]
-            []
-        , circle
-            [ cx "50%"
-            , cy "50%"
-            , r "10"
-            , fill "#999"
-            ]
-            []
+    let
+        position =
+            getPosition model
+    in
+        svg [ color "red", display "block", width (toString model.winSize.width), height (toString model.winSize.height) ]
+            [ circle
+                [ onMouseDown
+                , Svg.Attributes.cursor "move"
+                , cx (toString position.x)
+                , cy (toString position.y)
+                , r "50"
+                , fill "#0B79CE"
+                ]
+                []
+            , circle
+                [ cx "50%"
+                , cy "50%"
+                , r "10"
+                , fill "#999"
+                ]
+                []
 
-        --polygon [ stroke "#29e"
-        --, strokeWidth "20"
-        --, strokeLinejoin "round"
-        --, fill "none"
-        --, points "260.8676170428898331,219.7770876399966369 297.8074659814675442,334.6204278639912673 200.0000000000000000,264.0000000000000000 102.1925340185324700,334.6204278639912673 139.1323829571101669,219.7770876399966369 41.7441956884864567,148.5795721360087214 162.3817438532817334,148.2229123600033631 200.0000000000000284,33.5999999999999943 237.6182561467182950,148.2229123600033631 358.2558043115135433,148.5795721360087498"
-        --] []
-        ]
+            --polygon [ stroke "#29e"
+            --, strokeWidth "20"
+            --, strokeLinejoin "round"
+            --, fill "none"
+            --, points "260.8676170428898331,219.7770876399966369 297.8074659814675442,334.6204278639912673 200.0000000000000000,264.0000000000000000 102.1925340185324700,334.6204278639912673 139.1323829571101669,219.7770876399966369 41.7441956884864567,148.5795721360087214 162.3817438532817334,148.2229123600033631 200.0000000000000284,33.5999999999999943 237.6182561467182950,148.2229123600033631 358.2558043115135433,148.5795721360087498"
+            --] []
+            ]
 
 
 onMouseDown : Attribute Msg
@@ -127,7 +133,7 @@ onMouseDown =
 
 
 getPosition : Model -> Position
-getPosition { position, drag } =
+getPosition { position, drag, winSize } =
     case drag of
         Nothing ->
             position
