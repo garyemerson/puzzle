@@ -1,3 +1,10 @@
-* create snapping elements
+* Get actual puzzle svg's and get them to snap together
 * overlay images on puzzle pieces
 * allow upload of custom images
+
+puzzle piece types:
+* outer middle
+* outer corner
+* inner middle
+* inner corner
+* center

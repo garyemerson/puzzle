@@ -75,8 +75,19 @@ update msg model =
         DragAt position ->
             ( { model | drag = Maybe.map (\drag -> Drag drag.start position) model.drag, close = log "close" ((dist snapPoint (getPosition model)) < toFloat snapRadius) }, Cmd.none )
 
-        DragEnd position ->
-            ( { model | drag = Nothing, position = getPosition model }, Cmd.none )
+        DragEnd _ ->
+            ( { model
+                | drag = Nothing
+                , position =
+                    log "DragEnd"
+                        (if model.close then
+                            snapPoint
+                         else
+                            getPosition model
+                        )
+              }
+            , Cmd.none
+            )
 
 
 dist : Position -> Position -> Float
@@ -110,7 +121,12 @@ snapPoint =
 
 snapRadius : Int
 snapRadius =
-    20
+    20 + snapGuideRadius
+
+
+snapGuideRadius : Int
+snapGuideRadius =
+    2
 
 
 view : Model -> Html Msg
@@ -147,15 +163,8 @@ view model =
                     cy (toString snapPoint.y)
                   else
                     cy (toString position.y)
-                , r "2"
+                , r (toString snapGuideRadius)
                 , fill "#000"
-                ]
-                []
-            , circle
-                [ cx (toString snapPoint.x)
-                , cy (toString snapPoint.y)
-                , r (toString snapRadius)
-                , fill "rgba(153, 153, 153, 0.75)"
                 ]
                 []
             , Svg.text_
@@ -169,7 +178,14 @@ view model =
                   else
                     y (toString (position.y + 100))
                 ]
-                [ Svg.text "Drag to gray cirle" ]
+                [ Svg.text "Drag to gray circle" ]
+            , circle
+                [ cx (toString snapPoint.x)
+                , cy (toString snapPoint.y)
+                , r (toString (snapRadius - snapGuideRadius))
+                , fill "rgba(153, 153, 153, 0.75)"
+                ]
+                []
 
             --polygon [ stroke "#29e"
             --, strokeWidth "20"
