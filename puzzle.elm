@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Html exposing (Html, div, button)
-import Svg exposing (svg, circle, Attribute)
+import Svg exposing (svg, circle, Attribute, rect)
 import Svg.Attributes exposing (..)
 import Svg.Events exposing (on)
 import Debug exposing (log)
@@ -9,6 +9,8 @@ import Json.Decode as Decode
 import Mouse exposing (Position)
 import Window
 import Task
+import Touch exposing (Coordinates)
+import SingleTouch
 
 
 main : Program Never Model Msg
@@ -29,6 +31,7 @@ type alias Model =
     { position : Position
     , drag : Maybe Drag
     , winSize : WinSize
+    , close : Bool
     }
 
 
@@ -46,7 +49,7 @@ type alias WinSize =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model (Position 55 55) Nothing (WinSize 100 100), Task.perform WinResize Window.size )
+    ( Model (Position 105 105) Nothing (WinSize 100 100) False, Task.perform WinResize Window.size )
 
 
 
@@ -70,13 +73,19 @@ update msg model =
             ( { model | drag = Just (Drag position position) }, Cmd.none )
 
         DragAt position ->
-            ( { model | drag = Maybe.map (\drag -> Drag drag.start position) model.drag }, Cmd.none )
+            ( { model | drag = Maybe.map (\drag -> Drag drag.start position) model.drag, close = log "close" ((dist snapPoint (getPosition model)) < toFloat snapRadius) }, Cmd.none )
 
         DragEnd position ->
             ( { model | drag = Nothing, position = getPosition model }, Cmd.none )
 
 
+dist : Position -> Position -> Float
+dist p1 p2 =
+    sqrt (toFloat ((p1.x - p2.x) ^ 2 + (p1.y - p2.y) ^ 2))
 
+
+
+--dist
 -- SUBSCRIPTIONS
 
 
@@ -94,6 +103,16 @@ subscriptions model =
 -- VIEW
 
 
+snapPoint : Position
+snapPoint =
+    Position 300 300
+
+
+snapRadius : Int
+snapRadius =
+    20
+
+
 view : Model -> Html Msg
 view model =
     let
@@ -103,20 +122,54 @@ view model =
         svg [ color "red", display "block", width (toString model.winSize.width), height (toString model.winSize.height) ]
             [ circle
                 [ onMouseDown
+                , SingleTouch.onStart (\coord -> DragStart (coordsToPosition (log "touch coord" coord)))
+                , SingleTouch.onMove (\coord -> DragAt (coordsToPosition (log "touch coord" coord)))
+                , SingleTouch.onEnd (\coord -> DragEnd (coordsToPosition (log "touch coord" coord)))
                 , Svg.Attributes.cursor "move"
-                , cx (toString position.x)
-                , cy (toString position.y)
-                , r "50"
+                , if model.close then
+                    cx (toString snapPoint.x)
+                  else
+                    cx (toString position.x)
+                , if model.close then
+                    cy (toString snapPoint.y)
+                  else
+                    cy (toString position.y)
+                , r "25%"
                 , fill "#0B79CE"
                 ]
                 []
             , circle
-                [ cx "50%"
-                , cy "50%"
-                , r "10"
-                , fill "#999"
+                [ if model.close then
+                    cx (toString snapPoint.x)
+                  else
+                    cx (toString position.x)
+                , if model.close then
+                    cy (toString snapPoint.y)
+                  else
+                    cy (toString position.y)
+                , r "2"
+                , fill "#000"
                 ]
                 []
+            , circle
+                [ cx (toString snapPoint.x)
+                , cy (toString snapPoint.y)
+                , r (toString snapRadius)
+                , fill "rgba(153, 153, 153, 0.75)"
+                ]
+                []
+            , Svg.text_
+                [ fontSize "22px"
+                , if model.close then
+                    x (toString snapPoint.x)
+                  else
+                    x (toString position.x)
+                , if model.close then
+                    y (toString (snapPoint.y + 100))
+                  else
+                    y (toString (position.y + 100))
+                ]
+                [ Svg.text "Drag to gray cirle" ]
 
             --polygon [ stroke "#29e"
             --, strokeWidth "20"
@@ -125,6 +178,11 @@ view model =
             --, points "260.8676170428898331,219.7770876399966369 297.8074659814675442,334.6204278639912673 200.0000000000000000,264.0000000000000000 102.1925340185324700,334.6204278639912673 139.1323829571101669,219.7770876399966369 41.7441956884864567,148.5795721360087214 162.3817438532817334,148.2229123600033631 200.0000000000000284,33.5999999999999943 237.6182561467182950,148.2229123600033631 358.2558043115135433,148.5795721360087498"
             --] []
             ]
+
+
+coordsToPosition : Coordinates -> Position
+coordsToPosition coords =
+    Position (truncate coords.clientX) (truncate coords.clientY)
 
 
 onMouseDown : Attribute Msg
