@@ -1,9 +1,8 @@
 module Puzzle exposing (..)
 
-import Html exposing (Html)
-import Svg exposing (svg, circle, Attribute, rect)
+import Svg exposing (Svg, svg, circle, Attribute, rect)
 import Svg.Attributes exposing (..)
-import Svg.Events exposing (on)
+import List exposing (append)
 
 
 {-
@@ -26,9 +25,13 @@ type alias Point =
 
 {-| The origin/move point of a puzzle piece is the top left corner
 -}
-center : Point -> Html msg
-center topLeft =
-    svg [ width "361", height "361", overflow "visible" ]
+center : Point -> List (Attribute msg) -> Svg msg
+center topLeft attrs =
+    svg
+        (append
+            attrs
+            [ width "361", height "361", overflow "visible", cursor "move" ]
+        )
         [ Svg.path
             [ fill "#f1f1f1"
             , stroke "#000000"

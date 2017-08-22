@@ -1,8 +1,10 @@
-* How to keep track of all the svg puzzle pieces
-* How is dragging going to work with many puzzle pieces
-* Get actual puzzle svg's and get them to snap together
+* Get puzzle pieces to snap together
 * overlay images on puzzle pieces
 * allow upload of custom images
+
+TODO
+----
+* Selecting/dragging puzzle piece brings is to the foreground
 
 puzzle piece types:
 * outer middle

@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Html exposing (Html, div, button)
-import Svg exposing (svg, circle, Attribute, rect)
+import Svg exposing (Svg, svg, circle, Attribute, rect)
 import Svg.Attributes exposing (..)
 import Svg.Events exposing (on)
 import Debug exposing (log)
@@ -12,6 +12,9 @@ import Task
 import Touch exposing (Coordinates)
 import SingleTouch
 import Puzzle
+import Dict exposing (Dict)
+import List exposing (map)
+import Tuple exposing (first, second)
 
 
 main : Program Never Model Msg
@@ -29,7 +32,7 @@ main =
 
 
 type alias Model =
-    { position : Position
+    { positions : Dict Int Position
     , drag : Maybe Drag
     , winSize : WinSize
     , close : Bool
@@ -37,7 +40,8 @@ type alias Model =
 
 
 type alias Drag =
-    { start : Position
+    { puzzleId : Int
+    , start : Position
     , current : Position
     }
 
@@ -50,7 +54,16 @@ type alias WinSize =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model (Position 105 105) Nothing (WinSize 100 100) False, Task.perform WinResize Window.size )
+    ( Model positionsInit Nothing (WinSize 100 100) False, Task.perform WinResize Window.size )
+
+
+positionsInit : Dict Int Position
+positionsInit =
+    Dict.empty
+        |> Dict.insert 0 (Position 100 100)
+        |> Dict.insert 1 (Position 300 100)
+        |> Dict.insert 2 (Position 500 100)
+        |> Dict.insert 3 (Position 700 100)
 
 
 
@@ -59,9 +72,13 @@ init =
 
 type Msg
     = WinResize WinSize
-    | DragStart Position
-    | DragAt Position
-    | DragEnd Position
+    | DragStart Int Position
+    | DragAt Int Position
+    | DragEnd Int Position
+
+
+
+--| DragPuzzleStart Int Position
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -70,25 +87,31 @@ update msg model =
         WinResize winSize ->
             ( { model | winSize = (log "WinResize" winSize) }, Cmd.none )
 
-        DragStart position ->
-            ( { model | drag = Just (Drag position position) }, Cmd.none )
+        DragStart id position ->
+            ( { model | drag = Just (Drag id position position) }, Cmd.none )
 
-        DragAt position ->
-            ( { model | drag = Maybe.map (\drag -> Drag drag.start position) model.drag, close = log "close" ((dist snapPoint (getPosition model)) < toFloat snapRadius) }, Cmd.none )
+        DragAt id position ->
+            ( { model | drag = Maybe.map (\drag -> Drag drag.puzzleId drag.start position) model.drag, close = log "close" ((dist snapPoint (getPosition id model)) < toFloat snapRadius) }, Cmd.none )
 
-        DragEnd _ ->
+        DragEnd id _ ->
             ( { model
                 | drag = Nothing
-                , position =
-                    log "DragEnd"
-                        (if model.close then
-                            snapPoint
-                         else
-                            getPosition model
-                        )
+                , positions = Dict.update id (always (Just (getPosition id model))) model.positions
+
+                --log "DragEnd"
+                --    (if model.close then
+                --        snapPoint
+                --     else
+                --        getPosition model
+                --    )
               }
             , Cmd.none
             )
+
+
+
+--DragPuzzleStart _ _ ->
+--    ( model, Cmd.none )
 
 
 dist : Position -> Position -> Float
@@ -105,7 +128,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.drag of
         Just drag ->
-            Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd, Window.resizes WinResize ]
+            Sub.batch [ Mouse.moves (DragAt drag.puzzleId), Mouse.ups (DragEnd drag.puzzleId), Window.resizes WinResize ]
 
         Nothing ->
             Window.resizes WinResize
@@ -132,79 +155,82 @@ snapGuideRadius =
 
 view : Model -> Html Msg
 view model =
-    let
-        position =
-            getPosition model
-    in
-        svg [ color "red", display "block", width (toString model.winSize.width), height (toString model.winSize.height) ]
-            [ circle
-                [ onMouseDown
-                , SingleTouch.onStart (\coord -> DragStart (coordsToPosition (log "touch coord" coord)))
-                , SingleTouch.onMove (\coord -> DragAt (coordsToPosition (log "touch coord" coord)))
-                , SingleTouch.onEnd (\coord -> DragEnd (coordsToPosition (log "touch coord" coord)))
-                , Svg.Attributes.cursor "move"
-                , if model.close then
-                    cx (toString snapPoint.x)
-                  else
-                    cx (toString position.x)
-                , if model.close then
-                    cy (toString snapPoint.y)
-                  else
-                    cy (toString position.y)
-                , r "25%"
-                , fill "#0B79CE"
-                ]
-                []
-            , circle
-                [ if model.close then
-                    cx (toString snapPoint.x)
-                  else
-                    cx (toString position.x)
-                , if model.close then
-                    cy (toString snapPoint.y)
-                  else
-                    cy (toString position.y)
-                , r (toString snapGuideRadius)
-                , fill "#000"
-                ]
-                []
-            , Svg.text_
-                [ fontSize "22px"
-                , if model.close then
-                    x (toString snapPoint.x)
-                  else
-                    x (toString position.x)
-                , if model.close then
-                    y (toString (snapPoint.y + 100))
-                  else
-                    y (toString (position.y + 100))
-                ]
-                [ Svg.text "Drag to gray circle" ]
-            , circle
-                [ cx (toString snapPoint.x)
-                , cy (toString snapPoint.y)
-                , r (toString (snapRadius - snapGuideRadius))
-                , fill "rgba(153, 153, 153, 0.75)"
-                ]
-                []
-            , Puzzle.center (Puzzle.Point 500 50)
+    svg [ color "red", display "block", width (toString model.winSize.width), height (toString model.winSize.height) ]
+        (puzzlePieces model)
 
-            --, Svg.text_
-            --    [ fontSize "22px"
-            --    , x "500"
-            --    , y "250"
-            --    ]
-            --    [ Svg.text (toString (Puzzle.mirror ( ( 10, 10 ), ( 16, -3 ), ( 16, -16 ) ))) ]
-            --, Puzzle.center (Puzzle.Point 550 150)
-            --, Puzzle.center (Puzzle.Point 600 150)
-            --, Puzzle.center (Puzzle.Point 650 150)
-            --polygon [ stroke "#29e"
-            --, strokeWidth "20"
-            --, strokeLinejoin "round"
-            --, fill "none"
-            --, points "260.8676170428898331,219.7770876399966369 297.8074659814675442,334.6204278639912673 200.0000000000000000,264.0000000000000000 102.1925340185324700,334.6204278639912673 139.1323829571101669,219.7770876399966369 41.7441956884864567,148.5795721360087214 162.3817438532817334,148.2229123600033631 200.0000000000000284,33.5999999999999943 237.6182561467182950,148.2229123600033631 358.2558043115135433,148.5795721360087498"
-            --] []
-            ]
+
+
+--circle
+--    [ onMouseDown
+--    , SingleTouch.onStart (\coord -> DragStart (coordsToPosition (log "touch coord" coord)))
+--    , SingleTouch.onMove (\coord -> DragAt (coordsToPosition (log "touch coord" coord)))
+--    , SingleTouch.onEnd (\coord -> DragEnd (coordsToPosition (log "touch coord" coord)))
+--    , Svg.Attributes.cursor "move"
+--    , if model.close then
+--        cx (toString snapPoint.x)
+--      else
+--        cx (toString position.x)
+--    , if model.close then
+--        cy (toString snapPoint.y)
+--      else
+--        cy (toString position.y)
+--    , r "25%"
+--    , fill "#0B79CE"
+--    ]
+--    []
+--, circle
+--    [ if model.close then
+--        cx (toString snapPoint.x)
+--      else
+--        cx (toString position.x)
+--    , if model.close then
+--        cy (toString snapPoint.y)
+--      else
+--        cy (toString position.y)
+--    , r (toString snapGuideRadius)
+--    , fill "#000"
+--    ]
+--    []
+--, Svg.text_
+--    [ fontSize "22px"
+--    , if model.close then
+--        x (toString snapPoint.x)
+--      else
+--        x (toString position.x)
+--    , if model.close then
+--        y (toString (snapPoint.y + 100))
+--      else
+--        y (toString (position.y + 100))
+--    ]
+--    [ Svg.text "Drag to gray circle" ]
+--, circle
+--    [ cx (toString snapPoint.x)
+--    , cy (toString snapPoint.y)
+--    , r (toString (snapRadius - snapGuideRadius))
+--    , fill "rgba(153, 153, 153, 0.75)"
+--    ]
+--    [] ,
+--, Svg.text_
+--    [ fontSize "22px"
+--    , x "500"
+--    , y "250"
+--    ]
+--    [ Svg.text (toString (Puzzle.mirror ( ( 10, 10 ), ( 16, -3 ), ( 16, -16 ) ))) ]
+
+
+puzzlePieces : Model -> List (Svg Msg)
+puzzlePieces model =
+    (map
+        (\( key, val ) ->
+            Puzzle.center (positionToPoint (getPosition key model))
+                [ onMouseDown (first ( key, val ))
+                , SingleTouch.onStart (\coord -> DragStart key (coordsToPosition coord))
+                , SingleTouch.onMove (\coord -> DragAt key (coordsToPosition coord))
+                , SingleTouch.onEnd (\coord -> DragEnd key (coordsToPosition coord))
+                ]
+        )
+        (Dict.toList model.positions)
+    )
 
 
 coordsToPosition : Coordinates -> Position
@@ -212,18 +238,42 @@ coordsToPosition coords =
     Position (truncate coords.clientX) (truncate coords.clientY)
 
 
-onMouseDown : Attribute Msg
-onMouseDown =
-    on "mousedown" (Decode.map DragStart Mouse.position)
+positionToPoint : Position -> Puzzle.Point
+positionToPoint position =
+    Puzzle.Point (toFloat position.x) (toFloat position.y)
 
 
-getPosition : Model -> Position
-getPosition { position, drag, winSize } =
+onMouseDown : Int -> Attribute Msg
+onMouseDown id =
+    on "mousedown" (Decode.map (DragStart id) Mouse.position)
+
+
+getPosition : Int -> Model -> Position
+getPosition id { positions, drag, winSize } =
     case drag of
         Nothing ->
-            position
+            case Dict.get id positions of
+                Nothing ->
+                    -- TODO: this should never happen, why does it need to be here?
+                    Position 0 0
 
-        Just { start, current } ->
-            Position
-                (position.x + current.x - start.x)
-                (position.y + current.y - start.y)
+                Just position ->
+                    position
+
+        Just { puzzleId, start, current } ->
+            let
+                position =
+                    case Dict.get id positions of
+                        Nothing ->
+                            -- TODO: this should never happen, why does it need to be here?
+                            Position 0 0
+
+                        Just position ->
+                            position
+            in
+                if id == puzzleId then
+                    Position
+                        (position.x + current.x - start.x)
+                        (position.y + current.y - start.y)
+                else
+                    Position position.x position.y
