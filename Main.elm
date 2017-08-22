@@ -187,8 +187,17 @@ view model =
                 , fill "rgba(153, 153, 153, 0.75)"
                 ]
                 []
-            , Puzzle.center (Puzzle.Point 500 45)
+            , Puzzle.center (Puzzle.Point 500 50)
 
+            --, Svg.text_
+            --    [ fontSize "22px"
+            --    , x "500"
+            --    , y "250"
+            --    ]
+            --    [ Svg.text (toString (Puzzle.mirror ( ( 10, 10 ), ( 16, -3 ), ( 16, -16 ) ))) ]
+            --, Puzzle.center (Puzzle.Point 550 150)
+            --, Puzzle.center (Puzzle.Point 600 150)
+            --, Puzzle.center (Puzzle.Point 650 150)
             --polygon [ stroke "#29e"
             --, strokeWidth "20"
             --, strokeLinejoin "round"

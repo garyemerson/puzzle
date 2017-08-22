@@ -27,7 +27,7 @@ type alias Point =
 {-| The origin/move point of a puzzle piece is the top left corner
 -}
 center : Point -> Html msg
-center center =
+center topLeft =
     svg [ width "361", height "361", overflow "visible" ]
         [ Svg.path
             [ fill "#f1f1f1"
@@ -39,8 +39,8 @@ center center =
                     " "
                     [ String.join " "
                         [ "M"
-                        , toString center.x
-                        , toString center.y
+                        , toString topLeft.x
+                        , toString topLeft.y
                         ]
                     , leftKnob
                     , bottomKnob
@@ -50,16 +50,11 @@ center center =
                 )
             ]
             []
-
-        --, Svg.text_
-        --    [ fontSize "22px", x "50", y "50" ]
-        --    [ Svg.text (toString (mirror ( ( 0, -13.328 ), ( 7.945, -18.182 ), ( 18.236, -7.873 ) ))) ]
-        --, Svg.text_
-        --    [ fontSize "22px", x "50", y "75" ]
-        --    [ Svg.text (toString (mirror ( ( 10.311, 10.309 ), ( 16.365, -3.035 ), ( 16.365, -15.763 ) ))) ]
         ]
 
 
+{-| Auxliary fn to mirror 'c' path elements (bezier curves) about the x axis
+-}
 mirror : ( ( Float, Float ), ( Float, Float ), ( Float, Float ) ) -> ( ( Float, Float ), ( Float, Float ), ( Float, Float ) )
 mirror ( ( x1, y1 ), ( x2, y2 ), ( x3, y3 ) ) =
     let
@@ -72,46 +67,46 @@ mirror ( ( x1, y1 ), ( x2, y2 ), ( x3, y3 ) ) =
 rightKnob : String
 rightKnob =
     String.join " "
-        [ "l 0 -35.709"
-        , "c 0 -13.328, 7.945 -18.182, 18.236 -7.873"
-        , "c 10.311 10.309, 16.365 -3.035, 16.365 -15.763"
-        , "c  0 -12.728, -6.054 -26.072, -16.365 -15.763"
-        , "c -10.291 10.309, -18.236 5.455, -18.236 -7.873"
-        , "l 0 -35.709"
+        [ "l 0 -35"
+        , "c 0 -13, 8 -18, 18 -8"
+        , "c 10 10, 16 -3, 16 -16"
+        , "c 0 -13,-6 -26, -16 -16"
+        , "c -10 10, -18 5, -18 -8"
+        , "l 0 -35"
         ]
 
 
 topKnob : String
 topKnob =
     String.join " "
-        [ "l -35.709 0"
-        , "c -13.328 0, -18.182 -7.945, -7.873 -18.236"
-        , "c 10.309 -10.311, -3.035 -16.365, -15.763 -16.365"
-        , "c  -12.728 0, -26.072 6.054, -15.763 16.365"
-        , "c 10.309 10.291, 5.455 18.236, -7.873 18.236"
-        , "l -35.709 0"
+        [ "l -35 0"
+        , "c -13 0, -18 -8, -8 -18"
+        , "c 10 -10, -3 -16, -16 -16"
+        , "c -13 -0, -26 6, -16 16"
+        , "c 10 10, 5 18, -8 18"
+        , "l -35 0"
         ]
 
 
 leftKnob : String
 leftKnob =
     String.join " "
-        [ "l 0 35.709"
-        , "c 0 13.328, 7.945 18.182, 18.236 7.873"
-        , "c 10.311 -10.309, 16.365 3.035, 16.365 15.763"
-        , "c  0 12.728, -6.054 26.072, -16.365 15.763"
-        , "c -10.291 -10.309, -18.236 -5.455, -18.236 7.873"
-        , "l 0 35.709"
+        [ "l 0 35"
+        , "c 0 13, 8 18, 18 8"
+        , "c 10 -10, 16 3, 16 16"
+        , "c 0 13,-6 26, -16 16"
+        , "c -10 -10, -18 -5, -18 8"
+        , "l 0 35"
         ]
 
 
 bottomKnob : String
 bottomKnob =
     String.join " "
-        [ "l 35.709 0"
-        , "c 13.328 0, 18.182 -7.945, 7.873 -18.236"
-        , "c -10.309 -10.311, 3.035 -16.365, 15.763 -16.365"
-        , "c  12.728 0, 26.072 6.054, 15.763 16.365"
-        , "c -10.309 10.291, -5.455 18.236, 7.873 18.236"
-        , "l 35.709 0"
+        [ "l 35 0"
+        , "c 13 0, 18 -8, 8 -18"
+        , "c -10 -10, 3 -16, 16 -16"
+        , "c 13 -0, 26 6, 16 16"
+        , "c -10 10, -5 18, 8 18"
+        , "l 35 0"
         ]
