@@ -1,3 +1,4 @@
+* disallow snapping to knob that's already snapped
 * Get puzzle pieces to snap together
 * overlay images on puzzle pieces
 * allow upload of custom images
