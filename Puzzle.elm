@@ -44,6 +44,11 @@ type alias Point =
     { x : Float, y : Float }
 
 
+subPts : Point -> Point -> Point
+subPts pt1 pt2 =
+    Point (pt1.x - pt2.x) (pt1.y - pt2.y)
+
+
 addPts : Point -> Point -> Point
 addPts pt1 pt2 =
     Point (pt1.x + pt2.x) (pt1.y + pt2.y)
@@ -99,7 +104,7 @@ pieceSvgAux left bottom right top point attrs =
     svg
         (append
             attrs
-            [ width "361", height "361", overflow "visible", cursor "move" ]
+            [ {- width "361", height "361", -} overflow "visible", cursor "move" ]
         )
         [ Svg.path
             [ fill "#f1f1f1"
@@ -146,6 +151,22 @@ pieceSvgAux left bottom right top point attrs =
    right    (152, 59)
    top      (59, -34)
 -}
+
+
+knobOffset : Knob -> Point
+knobOffset knob =
+    case knob of
+        LeftKnob ->
+            rightKnobOffset
+
+        BottomKnob ->
+            topKnobOffset
+
+        RightKnob ->
+            leftKnobOffset
+
+        TopKnob ->
+            bottomKnobOffset
 
 
 leftKnobOffset : Point
@@ -329,19 +350,19 @@ bottomKnob =
 
 rightLine : String
 rightLine =
-    "l 0 -91"
+    "l 0 -118"
 
 
 topLine : String
 topLine =
-    "l -91 0"
+    "l -118 0"
 
 
 leftLine : String
 leftLine =
-    "l 0 91"
+    "l 0 118"
 
 
 bottomLine : String
 bottomLine =
-    "l 91 0"
+    "l 118 0"

@@ -1,7 +1,11 @@
-* disallow snapping to knob that's already snapped
-* Get puzzle pieces to snap together
 * overlay images on puzzle pieces
 * allow upload of custom images
+* allow custom selection of puzzle dimensions (3x3, 5x7 etc.)
+* disallow snapping to knob that's already snapped
+* clean up point vs position nonsense
+* For speed up, only compare distances squared to avoid the sqrt computation
+* If needed, implement k-d tree for faster closest snap point computation
+
 
 TODO
 ----

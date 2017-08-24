@@ -15,6 +15,7 @@ import Puzzle exposing (Piece(..))
 import Dict exposing (Dict)
 import List exposing (map)
 import Tuple exposing (first, second)
+import Maybe exposing (withDefault)
 
 
 main : Program Never Model Msg
@@ -27,22 +28,12 @@ main =
         }
 
 
-getOr : comparable -> v -> Dict comparable v -> v
-getOr key fallback dict =
-    case Dict.get key dict of
-        Nothing ->
-            fallback
-
-        Just val ->
-            val
-
-
 
 -- MODEL
 
 
 type alias Model =
-    { positions : Dict Int ( Puzzle.Piece, Position )
+    { pieces : Dict Int ( Puzzle.Piece, Position )
     , drag : Maybe Drag
     , winSize : WinSize
     , close : Bool
@@ -64,111 +55,114 @@ type alias WinSize =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model positionsInit Nothing (WinSize 100 100) False, Task.perform WinResize Window.size )
+    ( Model piecesInit Nothing (WinSize 100 100) False, Task.perform WinResize Window.size )
 
 
-positionsInit : Dict Int ( Puzzle.Piece, Position )
-positionsInit =
+piecesInit : Dict Int ( Puzzle.Piece, Position )
+piecesInit =
     Dict.empty
-        |> Dict.insert 0 ( Center, (Position 100 100) )
-        |> Dict.insert 1 ( Center, (Position 100 250) )
-        |> Dict.insert 2 ( Center, (Position 100 400) )
-        |> Dict.insert 3 ( Center, (Position 250 400) )
-        |> Dict.insert 4 ( Center, (Position 400 400) )
-        |> Dict.insert 5 ( Center, (Position 400 250) )
-        |> Dict.insert 6 ( Center, (Position 400 100) )
-        |> Dict.insert 7 ( Center, (Position 250 100) )
+        |> Dict.insert 0 ( TopLeft, (Position 100 100) )
+        |> Dict.insert 1 ( MidLeft, (Position 100 250) )
+        |> Dict.insert 2 ( BottomLeft, (Position 100 400) )
+        |> Dict.insert 3 ( BottomMid, (Position 250 400) )
+        |> Dict.insert 330 ( BottomMid, (Position 250 400) )
+        |> Dict.insert 4 ( BottomRight, (Position 400 400) )
+        |> Dict.insert 5 ( MidRight, (Position 400 250) )
+        |> Dict.insert 6 ( TopRight, (Position 400 100) )
+        |> Dict.insert 7 ( TopMid, (Position 250 100) )
+        |> Dict.insert 770 ( TopMid, (Position 250 100) )
         |> Dict.insert 8 ( Center, (Position 250 250) )
-        |> Dict.insert 9 ( Center, (Position 600 100) )
-        |> Dict.insert 10 ( Center, (Position 750 100) )
-        |> Dict.insert 11 ( Center, (Position 600 250) )
-        |> Dict.insert 13 ( Center, (Position 600 400) )
-        |> Dict.insert 14 ( Center, (Position 600 400) )
-        |> Dict.insert 15 ( Center, (Position 600 400) )
-        |> Dict.insert 16 ( Center, (Position 600 400) )
-        |> Dict.insert 17 ( Center, (Position 600 400) )
-        |> Dict.insert 18 ( Center, (Position 600 400) )
-        |> Dict.insert 19 ( Center, (Position 600 400) )
-        |> Dict.insert 20 ( Center, (Position 600 400) )
-        |> Dict.insert 21 ( Center, (Position 600 400) )
-        |> Dict.insert 22 ( Center, (Position 600 400) )
-        |> Dict.insert 23 ( Center, (Position 600 400) )
-        |> Dict.insert 24 ( Center, (Position 600 400) )
-        |> Dict.insert 25 ( Center, (Position 600 400) )
-        |> Dict.insert 26 ( Center, (Position 600 400) )
-        |> Dict.insert 27 ( Center, (Position 600 400) )
-        |> Dict.insert 28 ( Center, (Position 600 400) )
-        |> Dict.insert 29 ( Center, (Position 600 400) )
-        |> Dict.insert 30 ( Center, (Position 600 400) )
-        |> Dict.insert 31 ( Center, (Position 600 400) )
-        |> Dict.insert 32 ( Center, (Position 600 400) )
-        |> Dict.insert 33 ( Center, (Position 600 400) )
-        |> Dict.insert 34 ( Center, (Position 600 400) )
-        |> Dict.insert 35 ( Center, (Position 600 400) )
-        |> Dict.insert 36 ( Center, (Position 600 400) )
-        |> Dict.insert 37 ( Center, (Position 600 400) )
-        |> Dict.insert 38 ( Center, (Position 600 400) )
-        |> Dict.insert 39 ( Center, (Position 600 400) )
-        |> Dict.insert 40 ( Center, (Position 600 400) )
-        |> Dict.insert 41 ( Center, (Position 600 400) )
-        |> Dict.insert 42 ( Center, (Position 600 400) )
-        |> Dict.insert 43 ( Center, (Position 600 400) )
-        |> Dict.insert 44 ( Center, (Position 600 400) )
-        |> Dict.insert 45 ( Center, (Position 600 400) )
-        |> Dict.insert 46 ( Center, (Position 600 400) )
-        |> Dict.insert 47 ( Center, (Position 600 400) )
-        |> Dict.insert 48 ( Center, (Position 600 400) )
-        |> Dict.insert 49 ( Center, (Position 600 400) )
-        |> Dict.insert 50 ( Center, (Position 600 400) )
-        |> Dict.insert 51 ( Center, (Position 600 400) )
-        |> Dict.insert 52 ( Center, (Position 600 400) )
-        |> Dict.insert 53 ( Center, (Position 600 400) )
-        |> Dict.insert 54 ( Center, (Position 600 400) )
-        |> Dict.insert 55 ( Center, (Position 600 400) )
-        |> Dict.insert 56 ( Center, (Position 600 400) )
-        |> Dict.insert 57 ( Center, (Position 600 400) )
-        |> Dict.insert 58 ( Center, (Position 600 400) )
-        |> Dict.insert 59 ( Center, (Position 600 400) )
-        |> Dict.insert 60 ( Center, (Position 600 400) )
-        |> Dict.insert 61 ( Center, (Position 600 400) )
-        |> Dict.insert 62 ( Center, (Position 600 400) )
-        |> Dict.insert 63 ( Center, (Position 600 400) )
-        |> Dict.insert 64 ( Center, (Position 600 400) )
-        |> Dict.insert 65 ( Center, (Position 600 400) )
-        |> Dict.insert 66 ( Center, (Position 600 400) )
-        |> Dict.insert 67 ( Center, (Position 600 400) )
-        |> Dict.insert 68 ( Center, (Position 600 400) )
-        |> Dict.insert 69 ( Center, (Position 600 400) )
-        |> Dict.insert 70 ( Center, (Position 600 400) )
-        |> Dict.insert 71 ( Center, (Position 600 400) )
-        |> Dict.insert 72 ( Center, (Position 600 400) )
-        |> Dict.insert 73 ( Center, (Position 600 400) )
-        |> Dict.insert 74 ( Center, (Position 600 400) )
-        |> Dict.insert 75 ( Center, (Position 600 400) )
-        |> Dict.insert 76 ( Center, (Position 600 400) )
-        |> Dict.insert 77 ( Center, (Position 600 400) )
-        |> Dict.insert 78 ( Center, (Position 600 400) )
-        |> Dict.insert 79 ( Center, (Position 600 400) )
-        |> Dict.insert 80 ( Center, (Position 600 400) )
-        |> Dict.insert 81 ( Center, (Position 600 400) )
-        |> Dict.insert 82 ( Center, (Position 600 400) )
-        |> Dict.insert 83 ( Center, (Position 600 400) )
-        |> Dict.insert 84 ( Center, (Position 600 400) )
-        |> Dict.insert 85 ( Center, (Position 600 400) )
-        |> Dict.insert 86 ( Center, (Position 600 400) )
-        |> Dict.insert 87 ( Center, (Position 600 400) )
-        |> Dict.insert 88 ( Center, (Position 600 400) )
-        |> Dict.insert 89 ( Center, (Position 600 400) )
-        |> Dict.insert 90 ( Center, (Position 600 400) )
-        |> Dict.insert 91 ( Center, (Position 600 400) )
-        |> Dict.insert 92 ( Center, (Position 600 400) )
-        |> Dict.insert 93 ( Center, (Position 600 400) )
-        |> Dict.insert 94 ( Center, (Position 600 400) )
-        |> Dict.insert 95 ( Center, (Position 600 400) )
-        |> Dict.insert 96 ( Center, (Position 600 400) )
-        |> Dict.insert 97 ( Center, (Position 600 400) )
-        |> Dict.insert 98 ( Center, (Position 600 400) )
-        |> Dict.insert 99 ( Center, (Position 600 400) )
+        |> Dict.insert 880 ( Center, (Position 250 250) )
+        |> Dict.insert 9 ( Left, (Position 600 100) )
+        |> Dict.insert 10 ( Right, (Position 750 100) )
+        |> Dict.insert 11 ( Top, (Position 600 250) )
+        |> Dict.insert 13 ( Bottom, (Position 600 400) )
+        |> Dict.insert 14 ( Center, (Position 750 400) )
+        |> Dict.insert 15 ( Center, (Position 750 400) )
+        |> Dict.insert 16 ( Center, (Position 750 400) )
+        |> Dict.insert 17 ( Center, (Position 750 400) )
+        |> Dict.insert 18 ( Center, (Position 750 400) )
+        |> Dict.insert 19 ( Center, (Position 750 400) )
+        |> Dict.insert 20 ( Center, (Position 750 400) )
+        |> Dict.insert 21 ( Center, (Position 750 400) )
+        |> Dict.insert 22 ( Center, (Position 750 400) )
+        |> Dict.insert 23 ( Center, (Position 750 400) )
+        |> Dict.insert 24 ( Center, (Position 750 400) )
+        |> Dict.insert 25 ( Center, (Position 750 400) )
+        |> Dict.insert 26 ( Center, (Position 750 400) )
+        |> Dict.insert 27 ( Center, (Position 750 400) )
+        |> Dict.insert 28 ( Center, (Position 750 400) )
+        |> Dict.insert 29 ( Center, (Position 750 400) )
+        |> Dict.insert 30 ( Center, (Position 750 400) )
+        |> Dict.insert 31 ( Center, (Position 750 400) )
+        |> Dict.insert 32 ( Center, (Position 750 400) )
+        |> Dict.insert 33 ( Center, (Position 750 400) )
+        |> Dict.insert 34 ( Center, (Position 750 400) )
+        |> Dict.insert 35 ( Center, (Position 750 400) )
+        |> Dict.insert 36 ( Center, (Position 750 400) )
+        |> Dict.insert 37 ( Center, (Position 750 400) )
+        |> Dict.insert 38 ( Center, (Position 750 400) )
+        |> Dict.insert 39 ( Center, (Position 750 400) )
+        |> Dict.insert 40 ( Center, (Position 750 400) )
+        |> Dict.insert 41 ( Center, (Position 750 400) )
+        |> Dict.insert 42 ( Center, (Position 750 400) )
+        |> Dict.insert 43 ( Center, (Position 750 400) )
+        |> Dict.insert 44 ( Center, (Position 750 400) )
+        |> Dict.insert 45 ( Center, (Position 750 400) )
+        |> Dict.insert 46 ( Center, (Position 750 400) )
+        |> Dict.insert 47 ( Center, (Position 750 400) )
+        |> Dict.insert 48 ( Center, (Position 750 400) )
+        |> Dict.insert 49 ( Center, (Position 750 400) )
+        |> Dict.insert 50 ( Center, (Position 750 400) )
+        |> Dict.insert 51 ( Center, (Position 750 400) )
+        |> Dict.insert 52 ( Center, (Position 750 400) )
+        |> Dict.insert 53 ( Center, (Position 750 400) )
+        |> Dict.insert 54 ( Center, (Position 750 400) )
+        |> Dict.insert 55 ( Center, (Position 750 400) )
+        |> Dict.insert 56 ( Center, (Position 750 400) )
+        |> Dict.insert 57 ( Center, (Position 750 400) )
+        |> Dict.insert 58 ( Center, (Position 750 400) )
+        |> Dict.insert 59 ( Center, (Position 750 400) )
+        |> Dict.insert 60 ( Center, (Position 750 400) )
+        |> Dict.insert 61 ( Center, (Position 750 400) )
+        |> Dict.insert 62 ( Center, (Position 750 400) )
+        |> Dict.insert 63 ( Center, (Position 750 400) )
+        |> Dict.insert 64 ( Center, (Position 750 400) )
+        |> Dict.insert 65 ( Center, (Position 750 400) )
+        |> Dict.insert 66 ( Center, (Position 750 400) )
+        |> Dict.insert 67 ( Center, (Position 750 400) )
+        |> Dict.insert 68 ( Center, (Position 750 400) )
+        |> Dict.insert 69 ( Center, (Position 750 400) )
+        |> Dict.insert 70 ( Center, (Position 750 400) )
+        |> Dict.insert 71 ( Center, (Position 750 400) )
+        |> Dict.insert 72 ( Center, (Position 750 400) )
+        |> Dict.insert 73 ( Center, (Position 750 400) )
+        |> Dict.insert 74 ( Center, (Position 750 400) )
+        |> Dict.insert 75 ( Center, (Position 750 400) )
+        |> Dict.insert 76 ( Center, (Position 750 400) )
+        |> Dict.insert 77 ( Center, (Position 750 400) )
+        |> Dict.insert 78 ( Center, (Position 750 400) )
+        |> Dict.insert 79 ( Center, (Position 750 400) )
+        |> Dict.insert 80 ( Center, (Position 750 400) )
+        |> Dict.insert 81 ( Center, (Position 750 400) )
+        |> Dict.insert 82 ( Center, (Position 750 400) )
+        |> Dict.insert 83 ( Center, (Position 750 400) )
+        |> Dict.insert 84 ( Center, (Position 750 400) )
+        |> Dict.insert 85 ( Center, (Position 750 400) )
+        |> Dict.insert 86 ( Center, (Position 750 400) )
+        |> Dict.insert 87 ( Center, (Position 750 400) )
+        |> Dict.insert 88 ( Center, (Position 750 400) )
+        |> Dict.insert 89 ( Center, (Position 750 400) )
+        |> Dict.insert 90 ( Center, (Position 750 400) )
+        |> Dict.insert 91 ( Center, (Position 750 400) )
+        |> Dict.insert 92 ( Center, (Position 750 400) )
+        |> Dict.insert 93 ( Center, (Position 750 400) )
+        |> Dict.insert 94 ( Center, (Position 750 400) )
+        |> Dict.insert 95 ( Center, (Position 750 400) )
+        |> Dict.insert 96 ( Center, (Position 750 400) )
+        |> Dict.insert 97 ( Center, (Position 750 400) )
+        |> Dict.insert 98 ( Center, (Position 750 400) )
+        |> Dict.insert 99 ( Center, (Position 750 400) )
 
 
 
@@ -182,6 +176,9 @@ type Msg
     | DragEnd Int Position
 
 
+{-| closestSnapPoint
+TODO: This should return a Maybe (e.g. if there's only one puzzle piece on the board)
+-}
 closestSnapPoint : Int -> Model -> ( Float, Position, Puzzle.Knob )
 closestSnapPoint id model =
     let
@@ -204,20 +201,27 @@ closestSnapPoint id model =
                         (\( pos, knob ) ->
                             case knob of
                                 Puzzle.LeftKnob ->
-                                    closestSnapPointAux pos (List.filter (\( _, knob ) -> knob == Puzzle.RightKnob) allOtherKnobs)
+                                    closestSnapPointAux
+                                        pos
+                                        (List.filter (\( _, knob ) -> knob == Puzzle.RightKnob) allOtherKnobs)
 
                                 Puzzle.BottomKnob ->
-                                    closestSnapPointAux pos (List.filter (\( _, knob ) -> knob == Puzzle.TopKnob) allOtherKnobs)
+                                    closestSnapPointAux
+                                        pos
+                                        (List.filter (\( _, knob ) -> knob == Puzzle.TopKnob) allOtherKnobs)
 
                                 Puzzle.RightKnob ->
-                                    closestSnapPointAux pos (List.filter (\( _, knob ) -> knob == Puzzle.LeftKnob) allOtherKnobs)
+                                    closestSnapPointAux
+                                        pos
+                                        (List.filter (\( _, knob ) -> knob == Puzzle.LeftKnob) allOtherKnobs)
 
                                 Puzzle.TopKnob ->
-                                    closestSnapPointAux pos (List.filter (\( _, knob ) -> knob == Puzzle.BottomKnob) allOtherKnobs)
+                                    closestSnapPointAux
+                                        pos
+                                        (List.filter (\( _, knob ) -> knob == Puzzle.BottomKnob) allOtherKnobs)
                         )
                         currKnobs
                     )
-                 --( 0, Position 0 0, Puzzle.LeftKnob )
                 )
             )
         of
@@ -233,17 +237,26 @@ otherKnobs id model =
     List.foldr
         (List.append)
         []
-        (List.map (\( key, ( piece, pos ) ) -> List.map (\( pt, knob ) -> ( pointToPosition pt, knob )) (Puzzle.knobPoints piece (positionToPoint pos))) (List.filter (\( id2, _ ) -> id2 /= id) (Dict.toList model.positions)))
+        (List.map
+            (\( key, ( piece, pos ) ) ->
+                List.map
+                    (\( pt, knob ) -> ( pointToPosition pt, knob ))
+                    (Puzzle.knobPoints piece (positionToPoint pos))
+            )
+            (List.filter (\( id2, _ ) -> id2 /= id) (Dict.toList model.pieces))
+        )
 
 
 closestSnapPointAux : Position -> List ( Position, Puzzle.Knob ) -> ( Position, Puzzle.Knob, Float )
 closestSnapPointAux position knobs =
-    case minThird (List.map (\( pos, knob ) -> ( pos, knob, dist pos position )) knobs) of
-        Nothing ->
-            ( Position 0 0, Puzzle.LeftKnob, 0 )
-
-        Just x ->
-            x
+    withDefault
+        ( Position 0 0, Puzzle.LeftKnob, 0 )
+        (minThird
+            (List.map
+                (\( pos, knob ) -> ( pos, knob, dist pos position ))
+                knobs
+            )
+        )
 
 
 {-| This returns the mininum tuple by comparing the third element. For example, the min
@@ -268,13 +281,8 @@ minThird list =
 
 
 third : ( a, b, c ) -> c
-third ( a, b, c ) =
+third ( _, _, c ) =
     c
-
-
-
---(1, 2), (0, 4), (3, 7)
---List.map (\()) (Dict.toList model.positions)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -298,19 +306,34 @@ update msg model =
             )
 
         DragEnd id _ ->
-            ( { model
-                | drag = Nothing
-                , positions = Dict.update id (always (Just ( Center, (getPosition id model) ))) model.positions
+            let
+                ( piece, pos ) =
+                    let
+                        ( dist, pos, knob ) =
+                            closestSnapPoint id model
+                    in
+                        if dist < toFloat snapRadius then
+                            let
+                                ( piece2, _ ) =
+                                    getPiecePosition id model
+                            in
+                                ( piece2, log "DragEnd snapPoint" (pointToPosition (Puzzle.subPts (positionToPoint (log "DragEnd snapPoint" pos)) (log "DragEnd offset" (Puzzle.knobOffset knob)))) )
+                        else
+                            getPiecePosition id model
+            in
+                ( { model
+                    | drag = Nothing
+                    , pieces = Dict.update id (always (Just ( piece, pos ))) model.pieces
 
-                --log "DragEnd"
-                --    (if model.close then
-                --        snapPoint
-                --     else
-                --        getPosition model
-                --    )
-              }
-            , Cmd.none
-            )
+                    --log "DragEnd"
+                    --    (if model.close then
+                    --        snapPoint
+                    --     else
+                    --        getPosition model
+                    --    )
+                  }
+                , Cmd.none
+                )
 
 
 
@@ -349,7 +372,7 @@ snapPoint =
 
 snapRadius : Int
 snapRadius =
-    20
+    12
 
 
 snapGuideRadius : Int
@@ -360,42 +383,64 @@ snapGuideRadius =
 view : Model -> Html Msg
 view model =
     svg [ width (toString model.winSize.width), height (toString model.winSize.height) ]
-        (List.append
-            (puzzlePieces model)
-            (case model.drag of
-                Nothing ->
-                    []
+        (let
+            snap =
+                (case model.drag of
+                    Nothing ->
+                        Nothing
 
-                Just x ->
-                    let
-                        ( _, pos, _ ) =
-                            closestSnapPoint x.puzzleId model
-                    in
+                    Just x ->
+                        let
+                            ( dist, pos, knob ) =
+                                closestSnapPoint x.puzzleId model
+                        in
+                            if dist < toFloat snapRadius then
+                                Just ( pos, x.puzzleId, knob )
+                            else
+                                Nothing
+                )
+         in
+            List.append
+                (puzzlePieces model snap)
+                (case snap of
+                    Nothing ->
+                        []
+
+                    Just ( snapPoint, _, _ ) ->
                         [ circle
-                            [ cx (toString pos.x)
-                            , cy (toString pos.y)
+                            [ cx (toString snapPoint.x)
+                            , cy (toString snapPoint.y)
                             , r "3"
                             , fill "yellow"
                             ]
                             []
                         ]
-            )
+                )
         )
 
 
-puzzlePieces : Model -> List (Svg Msg)
-puzzlePieces model =
+puzzlePieces : Model -> Maybe ( Position, Int, Puzzle.Knob ) -> List (Svg Msg)
+puzzlePieces model snap =
     (map
-        (\( key, val ) ->
-            Puzzle.pieceSvg (first val)
-                (positionToPoint (getPosition key model))
-                [ onMouseDown (first ( key, val ))
-                , SingleTouch.onStart (\coord -> DragStart key (coordsToPosition coord))
-                , SingleTouch.onMove (\coord -> DragAt key (coordsToPosition coord))
-                , SingleTouch.onEnd (\coord -> DragEnd key (coordsToPosition coord))
+        (\( id, ( piece, position ) ) ->
+            Puzzle.pieceSvg piece
+                (case snap of
+                    Nothing ->
+                        (positionToPoint (getPosition id model))
+
+                    Just ( snapPoint, id2, knob ) ->
+                        if id == id2 then
+                            log "snapping to " (Puzzle.subPts (positionToPoint snapPoint) (log "offset" (Puzzle.knobOffset knob)))
+                        else
+                            (positionToPoint (getPosition id model))
+                )
+                [ onMouseDown id
+                , SingleTouch.onStart (\coord -> DragStart id (coordsToPosition coord))
+                , SingleTouch.onMove (\coord -> DragAt id (coordsToPosition coord))
+                , SingleTouch.onEnd (\coord -> DragEnd id (coordsToPosition coord))
                 ]
         )
-        (Dict.toList model.positions)
+        (Dict.toList model.pieces)
     )
 
 
@@ -428,34 +473,25 @@ getPosition id model =
 
 
 getPiecePosition : Int -> Model -> ( Puzzle.Piece, Position )
-getPiecePosition id { positions, drag, winSize } =
+getPiecePosition id { pieces, drag, winSize } =
     case drag of
         Nothing ->
-            case Dict.get id positions of
-                Nothing ->
-                    -- TODO: this should never happen, why does it need to be here?
-                    ( Puzzle.Center, Position 0 0 )
-
-                Just position ->
-                    position
+            withDefault
+                ( Puzzle.Center, Position 0 0 )
+                (Dict.get id pieces)
 
         Just { puzzleId, start, current } ->
             let
-                position =
-                    (case Dict.get id positions of
-                        Nothing ->
-                            -- TODO: this should never happen, why does it need to be here?
-                            ( Puzzle.Center, Position 0 0 )
-
-                        Just position ->
-                            position
-                    )
+                piece =
+                    withDefault
+                        ( Puzzle.Center, Position 0 0 )
+                        (Dict.get id pieces)
             in
                 if id == puzzleId then
-                    ( first position
+                    ( first piece
                     , Position
-                        ((second position).x + current.x - start.x)
-                        ((second position).y + current.y - start.y)
+                        ((second piece).x + current.x - start.x)
+                        ((second piece).y + current.y - start.y)
                     )
                 else
-                    position
+                    piece
