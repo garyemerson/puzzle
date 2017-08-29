@@ -107,8 +107,7 @@ pieceSvgAux left bottom right top point attrs =
             [ {- width "361", height "361", -} overflow "visible", cursor "move" ]
         )
         [ Svg.path
-            [ fill "#f1f1f1"
-            , stroke "#000000"
+            [ stroke "#000000"
             , strokeLinecap "round"
             , strokeLinejoin "round"
             , d
