@@ -97,6 +97,16 @@ knobPoints piece point =
             [ ( addPts point leftKnobOffset, LeftKnob ), ( addPts point bottomKnobOffset, BottomKnob ), ( addPts point rightKnobOffset, RightKnob ), ( addPts point topKnobOffset, TopKnob ) ]
 
 
+pieceWidth : Int
+pieceWidth =
+    118
+
+
+pieceHeight : Int
+pieceHeight =
+    118
+
+
 {-| Auxilary fn to create svg for a puzzle piece given the specified sides.
 -}
 pieceSvgAux : String -> String -> String -> String -> Point -> List (Attribute msg) -> Svg msg

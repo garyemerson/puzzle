@@ -1,7 +1,5 @@
 TODO
 ----
-* correctly position pieces of overlayed images on puzzle pieces
-* Selecting/dragging puzzle piece brings is to the foreground
 * allow upload of custom images
 * allow custom selection of puzzle dimensions (3x3, 5x7 etc.)
 ---
