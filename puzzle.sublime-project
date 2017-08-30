@@ -6,7 +6,7 @@
 			[
 				"elm-make",
 				"$file",
-				"--output={null}",
+				"--output=main.js",
 				"--report=json",
 				"--yes"
 			],

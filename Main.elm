@@ -1,8 +1,9 @@
-module Main exposing (..)
+port module Main exposing (..)
 
-import Html exposing (Html, div, button)
+import Html exposing (Html, div, button, p, text)
+import Html.Attributes exposing (style)
 import Svg exposing (Svg, svg, circle, Attribute, rect, defs, pattern, image)
-import Svg.Attributes exposing (..)
+import Svg.Attributes exposing (width, height, cx, cy, r, fill, id, patternUnits, x, y, xlinkHref, preserveAspectRatio)
 import Svg.Events exposing (on)
 import Debug exposing (log)
 import Json.Decode as Decode
@@ -82,7 +83,21 @@ init location =
         3
         (log "location" location)
         (log "imgUrl" (parsePath (s "puzzle" <?> stringParam "img") location))
-    , Cmd.batch [ Task.perform WinResize Window.size, Random.generate PositionsGenerated (shuffle piecePositions) ]
+    , Cmd.batch
+        [ Task.perform WinResize Window.size
+        , Random.generate PositionsGenerated (shuffle piecePositions)
+        , case (log "imgUrl" (parsePath (s "puzzle" <?> stringParam "img") location)) of
+            Nothing ->
+                Cmd.none
+
+            Just maybeImgUrl ->
+                case maybeImgUrl of
+                    Nothing ->
+                        Cmd.none
+
+                    Just imgUrl ->
+                        getImageDimensions imgUrl
+        ]
     )
 
 
@@ -227,6 +242,10 @@ type Msg
     | DragEnd Int Position
     | UrlChange Location
     | PositionsGenerated (List Position)
+    | ImageDimensions { width : Int, height : Int }
+
+
+port getImageDimensions : String -> Cmd msg
 
 
 {-| closestSnapPoint
@@ -435,20 +454,15 @@ update msg model =
             in
                 ( { model | pieces = dict }, Cmd.none )
 
+        ImageDimensions { width, height } ->
+            let
+                w =
+                    log "image width" width
 
-
---|> Dict.insert 0 ( TopLeft, Position 400 100, 0 )
---|> Dict.insert 1 ( TopMid, Position 400 100, 1 )
---|> Dict.insert 2 ( TopMid, Position 400 100, 2 )
---|> Dict.insert 3 ( TopRight, Position 400 100, 3 )
---|> Dict.insert 4 ( MidLeft, Position 400 100, 4 )
---|> Dict.insert 5 ( Center, Position 400 100, 5 )
---|> Dict.insert 6 ( Center, Position 400 100, 6 )
---|> Dict.insert 7 ( MidRight, Position 400 100, 7 )
---|> Dict.insert 8 ( BottomLeft, Position 400 100, 8 )
---|> Dict.insert 9 ( BottomMid, Position 400 100, 9 )
---|> Dict.insert 10 ( BottomMid, Position 400 100, 10 )
---|> Dict.insert 11 ( BottomRight, Position 400 100, 11 )
+                h =
+                    log "image height" height
+            in
+                ( model, Cmd.none )
 
 
 dist : Position -> Position -> Float
@@ -458,6 +472,9 @@ dist p1 p2 =
 
 
 -- SUBSCRIPTIONS
+
+
+port imageDimensions : ({ width : Int, height : Int } -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
@@ -481,9 +498,9 @@ snapRadius =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ Html.p [] [ Html.text ("img url is " ++ (backgroundImgUrl model)) ]
-        , svg [ width (toString model.winSize.width), height (toString model.winSize.height) ]
+    div [ style [ ( "background", "#f1f1f1" ) ] ]
+        [ p [ style [ ( "marginTop", "0" ) ] ] [ text ("img url is " ++ (backgroundImgUrl model)) ]
+        , svg [ width (toString (model.winSize.width - 20)), height (toString (model.winSize.height - 40)) ]
             (List.append
                 [ defs []
                     (backgroundImgs
@@ -529,7 +546,7 @@ view model =
 backgroundImgs : Model -> List (Svg Msg)
 backgroundImgs model =
     (map
-        (\( puzzleId, ( piece, _, _ ) ) ->
+        (\( puzzleId, _ ) ->
             Svg.pattern [ id ("backgroundImg" ++ (toString puzzleId)), patternUnits "userSpaceOnUse", width (toString model.winSize.width), height (toString model.winSize.height) ]
                 (let
                     pos =

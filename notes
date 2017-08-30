@@ -1,10 +1,11 @@
 TODO
 ----
-* detect image size and set puzzle piece dimensions accordingly
+* use image size to set puzzle piece dimensions accordingly
 * bug on surface where drag start causes piece to shift suddenly
     * this is caused by getting a DragAt event after a DragEnd event for the same
 * allow custom selection of puzzle dimensions (3x3, 5x7 etc.)
 ---
+* add foreground index to model instead of needing to go thru entire dictionary to find the max index
 * allow rotating pieces
 * allow upload of custom images
 * disallow snapping to knob that's already snapped
