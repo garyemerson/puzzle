@@ -15,11 +15,14 @@ import Puzzle exposing (Piece(..))
 import Dict exposing (Dict)
 import List exposing (map, maximum, sortBy)
 import Maybe exposing (withDefault)
+import Navigation exposing (Location)
+import UrlParser exposing (parsePath, (<?>), s, stringParam)
 
 
 main : Program Never Model Msg
 main =
-    Html.program
+    Navigation.program
+        UrlChange
         { init = init
         , view = view
         , update = update
@@ -38,6 +41,8 @@ type alias Model =
     , snap : Maybe Snap
     , numCols : Int
     , numRows : Int
+    , location : Location
+    , imgUrl : Maybe (Maybe String)
     }
 
 
@@ -61,9 +66,19 @@ type alias WinSize =
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model piecesInit Nothing (WinSize 100 100) Nothing 4 3, Task.perform WinResize Window.size )
+init : Location -> ( Model, Cmd Msg )
+init location =
+    ( Model
+        piecesInit
+        Nothing
+        (WinSize 100 100)
+        Nothing
+        4
+        3
+        (log "location" location)
+        (log "imgUrl" (parsePath (s "" <?> stringParam "img") location))
+    , Task.perform WinResize Window.size
+    )
 
 
 piecesInit : Dict Int ( Puzzle.Piece, Position, Int )
@@ -81,13 +96,13 @@ piecesInit =
         |> Dict.insert 9 ( BottomMid, (Position 250 400), 0 )
         |> Dict.insert 10 ( BottomMid, (Position 250 400), 0 )
         |> Dict.insert 11 ( BottomRight, (Position 400 400), 0 )
-        |> Dict.insert 12 ( Left, (Position 600 100), 0 )
-        |> Dict.insert 13 ( Right, (Position 750 100), 0 )
-        |> Dict.insert 14 ( Top, (Position 600 250), 0 )
-        |> Dict.insert 15 ( Bottom, (Position 600 400), 0 )
 
 
 
+--|> Dict.insert 12 ( Left, (Position 600 100), 0 )
+--|> Dict.insert 13 ( Right, (Position 750 100), 0 )
+--|> Dict.insert 14 ( Top, (Position 600 250), 0 )
+--|> Dict.insert 15 ( Bottom, (Position 600 400), 0 )
 --|> Dict.insert 140 ( Center, (Position 750 400), 0 )
 --|> Dict.insert 150 ( Center, (Position 750 400), 0 )
 --|> Dict.insert 16 ( Center, (Position 750 400), 0 )
@@ -182,6 +197,7 @@ type Msg
     | DragStart Int Position
     | DragAt Int Position
     | DragEnd Int Position
+    | UrlChange Location
 
 
 {-| closestSnapPoint
@@ -361,6 +377,9 @@ update msg model =
                 , Cmd.none
                 )
 
+        UrlChange location ->
+            ( model, Cmd.none )
+
 
 dist : Position -> Position -> Float
 dist p1 p2 =
@@ -483,7 +502,19 @@ backgroundImgs model =
                                             model
                             )
                      in
-                        [ xlinkHref "./spongebob.png"
+                        [ xlinkHref
+                            (case model.imgUrl of
+                                Nothing ->
+                                    "./spongebob.png"
+
+                                Just maybeUrl ->
+                                    case maybeUrl of
+                                        Nothing ->
+                                            "./spongebob.png"
+
+                                        Just url ->
+                                            url
+                            )
                         , preserveAspectRatio "none"
                         , patternUnits "userSpaceOnUse"
                         , width (toString (model.numCols * Puzzle.pieceWidth))
