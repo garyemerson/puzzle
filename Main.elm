@@ -13,10 +13,13 @@ import Touch exposing (Coordinates)
 import SingleTouch
 import Puzzle exposing (Piece(..))
 import Dict exposing (Dict)
-import List exposing (map, maximum, sortBy)
+import List exposing (map, maximum, sortBy, range)
 import Maybe exposing (withDefault)
 import Navigation exposing (Location)
 import UrlParser exposing (parsePath, (<?>), s, stringParam)
+import Array exposing (Array)
+import Random.List exposing (shuffle)
+import Random
 
 
 main : Program Never Model Msg
@@ -35,6 +38,7 @@ main =
 
 
 type alias Model =
+    -- (piece type, piece postion, zIndex for foreground)
     { pieces : Dict Int ( Puzzle.Piece, Position, Int )
     , drag : Maybe Drag
     , winSize : WinSize
@@ -47,7 +51,8 @@ type alias Model =
 
 
 type alias Snap =
-    { dist : Float
+    { id : Int
+    , dist : Float
     , position : Position
     , knob : Puzzle.Knob
     }
@@ -76,26 +81,49 @@ init location =
         4
         3
         (log "location" location)
-        (log "imgUrl" (parsePath (s "" <?> stringParam "img") location))
-    , Task.perform WinResize Window.size
+        (log "imgUrl" (parsePath (s "puzzle" <?> stringParam "img") location))
+    , Cmd.batch [ Task.perform WinResize Window.size, Random.generate PositionsGenerated (shuffle piecePositions) ]
     )
 
 
 piecesInit : Dict Int ( Puzzle.Piece, Position, Int )
 piecesInit =
     Dict.empty
-        |> Dict.insert 0 ( TopLeft, (Position 100 100), 0 )
-        |> Dict.insert 1 ( TopMid, (Position 250 100), 0 )
-        |> Dict.insert 2 ( TopMid, (Position 250 100), 0 )
-        |> Dict.insert 3 ( TopRight, (Position 400 100), 0 )
-        |> Dict.insert 4 ( MidLeft, (Position 100 250), 0 )
-        |> Dict.insert 5 ( Center, (Position 250 250), 0 )
-        |> Dict.insert 6 ( Center, (Position 250 250), 0 )
-        |> Dict.insert 7 ( MidRight, (Position 400 250), 0 )
-        |> Dict.insert 8 ( BottomLeft, (Position 100 400), 0 )
-        |> Dict.insert 9 ( BottomMid, (Position 250 400), 0 )
-        |> Dict.insert 10 ( BottomMid, (Position 250 400), 0 )
-        |> Dict.insert 11 ( BottomRight, (Position 400 400), 0 )
+
+
+piecePositions : List Position
+piecePositions =
+    [ (Position 100 100)
+    , (Position 250 100)
+    , (Position 400 100)
+    , (Position 550 100)
+    , (Position 100 250)
+    , (Position 250 250)
+    , (Position 400 250)
+    , (Position 550 250)
+    , (Position 100 400)
+    , (Position 250 400)
+    , (Position 400 400)
+    , (Position 550 400)
+    ]
+
+
+pieceTypes : Array Puzzle.Piece
+pieceTypes =
+    Array.fromList
+        [ TopLeft
+        , TopMid
+        , TopMid
+        , TopRight
+        , MidLeft
+        , Center
+        , Center
+        , MidRight
+        , BottomLeft
+        , BottomMid
+        , BottomMid
+        , BottomRight
+        ]
 
 
 
@@ -198,15 +226,13 @@ type Msg
     | DragAt Int Position
     | DragEnd Int Position
     | UrlChange Location
+    | PositionsGenerated (List Position)
 
 
 {-| closestSnapPoint
 TODO: This should return a Maybe (e.g. if there's only one puzzle piece on the board)
 -}
-closestSnapPoint :
-    Int
-    -> Model
-    -> Snap -- ( Float, Position, Puzzle.Knob )
+closestSnapPoint : Int -> Model -> Snap
 closestSnapPoint id model =
     let
         ( piece, position, _ ) =
@@ -252,10 +278,10 @@ closestSnapPoint id model =
             )
         of
             Nothing ->
-                Snap 0 (Position 0 0) Puzzle.LeftKnob
+                Snap id 0 (Position 0 0) Puzzle.LeftKnob
 
             Just ( pos, knob, dist ) ->
-                Snap dist pos knob
+                Snap id dist pos knob
 
 
 otherKnobs : Int -> Model -> List ( Position, Puzzle.Knob )
@@ -320,37 +346,43 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         WinResize winSize ->
-            ( { model | winSize = (log "WinResize" winSize) }, Cmd.none )
+            ( log "WinResize model" { model | winSize = (log "WinResize" winSize) }, Cmd.none )
 
-        DragStart id position ->
+        DragStart id mousePosition ->
             let
                 ( pieceType, pos, _ ) =
                     dragPosition id model
             in
-                ( { model
-                    | drag = Just (Drag id position position)
-                    , pieces = Dict.update id (always (Just ( pieceType, pos, (maxForeground model) + 1 ))) model.pieces
-                  }
+                ( log "DragStart model"
+                    ({ model
+                        | drag = Just (Drag id mousePosition mousePosition)
+                        , pieces = Dict.update id (always (Just ( pieceType, pos, (maxForeground model) + 1 ))) model.pieces
+
+                        --, snap = Nothing
+                     }
+                    )
                 , Cmd.none
                 )
 
-        DragAt id position ->
-            ( { model
-                | drag =
-                    Maybe.map
-                        (\drag -> Drag drag.puzzleId drag.start position)
-                        model.drag
-                , snap =
-                    (let
-                        possibleSnap =
-                            closestSnapPoint id model
-                     in
-                        if possibleSnap.dist < toFloat snapRadius then
-                            Just possibleSnap
-                        else
-                            Nothing
-                    )
-              }
+        DragAt id mousePosition ->
+            ( log "DragAt model"
+                ({ model
+                    | drag =
+                        Maybe.map
+                            (\drag -> Drag drag.puzzleId drag.start mousePosition)
+                            model.drag
+                    , snap =
+                        (let
+                            possibleSnap =
+                                closestSnapPoint id model
+                         in
+                            if possibleSnap.dist < toFloat snapRadius then
+                                Just possibleSnap
+                            else
+                                Nothing
+                        )
+                 }
+                )
             , Cmd.none
             )
 
@@ -369,16 +401,54 @@ update msg model =
                     else
                         dragPosition id model
             in
-                ( { model
-                    | drag = Nothing
-                    , pieces = Dict.update id (always (Just ( piece, pos, foregroundIndex ))) model.pieces
-                    , snap = Nothing
-                  }
+                ( log "DragEnd model"
+                    ({ model
+                        | drag = Nothing
+                        , pieces = Dict.update id (always (Just ( piece, pos, foregroundIndex ))) model.pieces
+                        , snap = Nothing
+                     }
+                    )
                 , Cmd.none
                 )
 
         UrlChange location ->
-            ( model, Cmd.none )
+            ( log "UrlChange model" model, Cmd.none )
+
+        PositionsGenerated positions ->
+            let
+                positionsArr =
+                    Array.fromList positions
+
+                dict =
+                    List.foldr
+                        (\id dict ->
+                            Dict.insert
+                                id
+                                ( withDefault Puzzle.Center (Array.get id pieceTypes)
+                                , withDefault (Position 0 0) (Array.get id positionsArr)
+                                , id
+                                )
+                                dict
+                        )
+                        Dict.empty
+                        (range 0 11)
+            in
+                ( { model | pieces = dict }, Cmd.none )
+
+
+
+--|> Dict.insert 0 ( TopLeft, Position 400 100, 0 )
+--|> Dict.insert 1 ( TopMid, Position 400 100, 1 )
+--|> Dict.insert 2 ( TopMid, Position 400 100, 2 )
+--|> Dict.insert 3 ( TopRight, Position 400 100, 3 )
+--|> Dict.insert 4 ( MidLeft, Position 400 100, 4 )
+--|> Dict.insert 5 ( Center, Position 400 100, 5 )
+--|> Dict.insert 6 ( Center, Position 400 100, 6 )
+--|> Dict.insert 7 ( MidRight, Position 400 100, 7 )
+--|> Dict.insert 8 ( BottomLeft, Position 400 100, 8 )
+--|> Dict.insert 9 ( BottomMid, Position 400 100, 9 )
+--|> Dict.insert 10 ( BottomMid, Position 400 100, 10 )
+--|> Dict.insert 11 ( BottomRight, Position 400 100, 11 )
 
 
 dist : Position -> Position -> Float
@@ -411,59 +481,49 @@ snapRadius =
 
 view : Model -> Html Msg
 view model =
-    svg [ width (toString model.winSize.width), height (toString model.winSize.height) ]
-        (List.append
-            [ defs []
-                (backgroundImgs
-                    model
-                )
-            ]
-            --[ defs []
-            --    [ pattern [ id "backgroundImg", patternUnits "userSpaceOnUse", width "100", height "100" ]
-            --        [ image
-            --            [ xlinkHref "spongebob.png"
-            --            , x "10"
-            --            , y "10"
-            --            , width "100"
-            --            , height "100"
-            --            ]
-            --            []
-            --        ]
-            --    ]
-            --]
-            (let
-                snap =
-                    (case model.drag of
-                        Nothing ->
-                            Nothing
-
-                        Just drag ->
-                            case model.snap of
-                                Nothing ->
-                                    Nothing
-
-                                Just { dist, position, knob } ->
-                                    Just ( position, drag.puzzleId, knob )
+    div []
+        [ Html.p [] [ Html.text ("img url is " ++ (backgroundImgUrl model)) ]
+        , svg [ width (toString model.winSize.width), height (toString model.winSize.height) ]
+            (List.append
+                [ defs []
+                    (backgroundImgs
+                        model
                     )
-             in
-                List.append
-                    (puzzlePieces model snap)
-                    (case snap of
-                        Nothing ->
-                            []
+                ]
+                (let
+                    snap =
+                        (case model.drag of
+                            Nothing ->
+                                Nothing
 
-                        Just ( snapPoint, _, _ ) ->
-                            [ circle
-                                [ cx (toString snapPoint.x)
-                                , cy (toString snapPoint.y)
-                                , r "3"
-                                , fill "yellow"
-                                ]
+                            Just drag ->
+                                case model.snap of
+                                    Nothing ->
+                                        Nothing
+
+                                    Just { dist, position, knob } ->
+                                        Just ( position, drag.puzzleId, knob )
+                        )
+                 in
+                    List.append
+                        (puzzlePieces model model.snap)
+                        (case model.snap of
+                            Nothing ->
                                 []
-                            ]
-                    )
+
+                            Just snap ->
+                                [ circle
+                                    [ cx (toString snap.position.x)
+                                    , cy (toString snap.position.y)
+                                    , r "3"
+                                    , fill "yellow"
+                                    ]
+                                    []
+                                ]
+                        )
+                )
             )
-        )
+        ]
 
 
 backgroundImgs : Model -> List (Svg Msg)
@@ -471,50 +531,52 @@ backgroundImgs model =
     (map
         (\( puzzleId, ( piece, _, _ ) ) ->
             Svg.pattern [ id ("backgroundImg" ++ (toString puzzleId)), patternUnits "userSpaceOnUse", width (toString model.winSize.width), height (toString model.winSize.height) ]
-                [ Svg.image
-                    (let
-                        pos =
-                            (case model.drag of
-                                Nothing ->
-                                    backgroundImgPosition
-                                        (getPosition puzzleId model)
-                                        puzzleId
-                                        model
+                (let
+                    pos =
+                        (case model.drag of
+                            Nothing ->
+                                backgroundImgPosition
+                                    (getPosition puzzleId model)
+                                    puzzleId
+                                    model
 
-                                Just drag ->
-                                    if drag.puzzleId == puzzleId then
-                                        case model.snap of
-                                            Nothing ->
+                            Just drag ->
+                                if drag.puzzleId == puzzleId then
+                                    case model.snap of
+                                        Nothing ->
+                                            backgroundImgPosition
+                                                (getPosition puzzleId model)
+                                                puzzleId
+                                                model
+
+                                        Just snap ->
+                                            if puzzleId == snap.id then
+                                                backgroundImgPosition
+                                                    (pointToPosition (Puzzle.subPts (positionToPoint snap.position) (Puzzle.knobOffset snap.knob)))
+                                                    puzzleId
+                                                    model
+                                            else
                                                 backgroundImgPosition
                                                     (getPosition puzzleId model)
                                                     puzzleId
                                                     model
-
-                                            Just { dist, position, knob } ->
-                                                backgroundImgPosition
-                                                    (pointToPosition (Puzzle.subPts (positionToPoint position) (Puzzle.knobOffset knob)))
-                                                    puzzleId
-                                                    model
-                                    else
-                                        backgroundImgPosition
-                                            (getPosition puzzleId model)
-                                            puzzleId
-                                            model
-                            )
-                     in
-                        [ xlinkHref
-                            (case model.imgUrl of
-                                Nothing ->
-                                    "./spongebob.png"
-
-                                Just maybeUrl ->
-                                    case maybeUrl of
-                                        Nothing ->
-                                            "./spongebob.png"
-
-                                        Just url ->
-                                            url
-                            )
+                                else
+                                    backgroundImgPosition
+                                        (getPosition puzzleId model)
+                                        puzzleId
+                                        model
+                        )
+                 in
+                    [ Svg.rect
+                        [ fill "#fff"
+                        , width "1000"
+                        , height "1000"
+                        , x (toString pos.x)
+                        , y (toString pos.y)
+                        ]
+                        []
+                    , Svg.image
+                        [ xlinkHref (backgroundImgUrl model)
                         , preserveAspectRatio "none"
                         , patternUnits "userSpaceOnUse"
                         , width (toString (model.numCols * Puzzle.pieceWidth))
@@ -522,12 +584,27 @@ backgroundImgs model =
                         , x (toString pos.x)
                         , y (toString pos.y)
                         ]
-                    )
-                    []
-                ]
+                        []
+                    ]
+                )
         )
         (Dict.toList model.pieces)
     )
+
+
+backgroundImgUrl : Model -> String
+backgroundImgUrl model =
+    case model.imgUrl of
+        Nothing ->
+            "./spongebob.png"
+
+        Just maybeUrl ->
+            case maybeUrl of
+                Nothing ->
+                    "./spongebob.png"
+
+                Just url ->
+                    url
 
 
 backgroundImgPosition : Position -> Int -> Model -> Position
@@ -548,18 +625,22 @@ backgroundImgPosition pos id model =
         Position (pos.x - offsetX) (pos.y - offsetY)
 
 
-puzzlePieces : Model -> Maybe ( Position, Int, Puzzle.Knob ) -> List (Svg Msg)
-puzzlePieces model snap =
+
+--{ id : Int , dist : Float , position : Position , knob : Puzzle.Knob }
+
+
+puzzlePieces : Model -> Maybe Snap {- ( Position, Int, Puzzle.Knob ) -} -> List (Svg Msg)
+puzzlePieces model maybeSnap =
     (map
         (\( id, ( piece, position, _ ) ) ->
             Puzzle.pieceSvg piece
-                (case snap of
+                (case maybeSnap of
                     Nothing ->
                         (positionToPoint (getPosition id model))
 
-                    Just ( snapPoint, id2, knob ) ->
-                        if id == id2 then
-                            Puzzle.subPts (positionToPoint snapPoint) (Puzzle.knobOffset knob)
+                    Just snap ->
+                        if id == snap.id then
+                            Puzzle.subPts (positionToPoint snap.position) (Puzzle.knobOffset snap.knob)
                         else
                             (positionToPoint (getPosition id model))
                 )
