@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+<head><meta charset="UTF-8"><title>Main</title><style>html,head,body { padding:0; margin:0; }
+body { background: #f1f1f1; font-family: calibri, helvetica, arial, sans-serif; }</style>
+</head>
+
+<body>
+    <script src="main.js"></script>
+    <script type="text/javascript">
+        var app = Elm.Main.fullscreen()
+        app.ports.getImageDimensions.subscribe(function(url) {
+            var dimensions = getImageDimensions(url);
+            app.ports.imageDimensions.send(dimensions);
+        });
+
+        function getImageDimensions(url) {
+            var image = new Image()
+            image.src = url
+            image.id = "foobarfoobarfoobar"
+            image.style = "display: none;"
+            document.body.appendChild(image)
+
+            var imageLoaded = document.getElementById("foobarfoobarfoobar")
+            // console.log("imageLoaded is ", imageLoaded)
+            // console.log("naturalHeight is ", imageLoaded.naturalHeight)
+            // console.log("naturalWidth is ", imageLoaded.naturalWidth)
+            // console.log("clientHeight is ", imageLoaded.clientHeight)
+            // console.log("clientWidth is ", imageLoaded.clientWidth)
+
+
+            return { width: imageLoaded.naturalWidth, height: imageLoaded.naturalHeight }
+        }
+
+    </script>
+</body>
+
+</html>
