@@ -1,6 +1,6 @@
 port module Main exposing (..)
 
-import Html exposing (Html, div, button, p, text)
+import Html exposing (Html, div, button, p, text, h2)
 import Html.Attributes exposing (style)
 import Svg exposing (Svg, svg, circle, Attribute, rect, defs, pattern, image)
 import Svg.Attributes exposing (width, height, cx, cy, r, fill, id, patternUnits, x, y, xlinkHref, preserveAspectRatio)
@@ -44,10 +44,8 @@ type alias Model =
     , drag : Maybe Drag
     , winSize : WinSize
     , snap : Maybe Snap
-    , numCols : Int
-    , numRows : Int
     , location : Location
-    , imgUrl : Maybe (Maybe String)
+    , imgUrl : Maybe String
     , puzzleDimensions : Maybe { width : Int, height : Int }
     }
 
@@ -80,28 +78,24 @@ init location =
         Nothing
         (WinSize 100 100)
         Nothing
-        4
-        3
-        (log "location" location)
-        (log "imgUrl" (parsePath (s "puzzle" <?> stringParam "img") location))
+        ({- log "location" -} location)
+        (imgUrlFromLocation location)
         (Just { width = 4, height = 3 })
     , Cmd.batch
         [ Task.perform WinResize Window.size
-        , case (log "imgUrl" (parsePath (s "puzzle" <?> stringParam "img") location)) of
+        , case imgUrlFromLocation location of
             Nothing ->
-                Random.generate PositionsGenerated (shuffle piecePositions)
+                getImageDimensions "./spongebob.png"
 
-            --getImageDimensions "./spongebob.png"
-            Just maybeImgUrl ->
-                case maybeImgUrl of
-                    Nothing ->
-                        Random.generate PositionsGenerated (shuffle piecePositions)
-
-                    --getImageDimensions "./spongebob.png"
-                    Just imgUrl ->
-                        getImageDimensions imgUrl
+            Just imgUrl ->
+                getImageDimensions imgUrl
         ]
     )
+
+
+imgUrlFromLocation : Location -> Maybe String
+imgUrlFromLocation location =
+    withDefault Nothing ({- log "imgUrl" -} (parsePath (s "puzzle" <?> stringParam "img") location))
 
 
 piecesInit : Dict Int ( Puzzle.Piece, Position, Int )
@@ -109,80 +103,60 @@ piecesInit =
     Dict.empty
 
 
-pieceType : { x : Int, y : Int } -> { width : Int, height : Int } -> Puzzle.Piece
-pieceType { x, y } { width, height } =
-    if x == 0 && x == width - 1 then
-        if y == 0 && y == height - 1 then
-            Single
-        else if y == 0 then
-            Top
-        else if y == height - 1 then
-            Bottom
+getPieceType : { x : Int, y : Int } -> { width : Int, height : Int } -> Puzzle.Piece
+getPieceType { x, y } { width, height } =
+    let
+        foo =
+            log "getPieceType" ()
+    in
+        if x == 0 && x == width - 1 then
+            if y == 0 && y == height - 1 then
+                Single
+            else if y == 0 then
+                Top
+            else if y == height - 1 then
+                Bottom
+            else
+                CenterVertical
+        else if x == 0 then
+            if y == 0 && y == height - 1 then
+                Left
+            else if y == 0 then
+                TopLeft
+            else if y == height - 1 then
+                BottomLeft
+            else
+                MidLeft
+        else if x == width - 1 then
+            if y == 0 && y == height - 1 then
+                Right
+            else if y == 0 then
+                TopRight
+            else if y == height - 1 then
+                BottomRight
+            else
+                MidRight
         else
-            CenterVertical
-    else if x == 0 then
-        if y == 0 && y == height - 1 then
-            Left
-        else if y == 0 then
-            TopLeft
-        else if y == height - 1 then
-            BottomLeft
-        else
-            MidLeft
-    else if x == width - 1 then
-        if y == 0 && y == height - 1 then
-            Right
-        else if y == 0 then
-            TopRight
-        else if y == height - 1 then
-            BottomRight
-        else
-            MidRight
-    else
-        (if y == 0 && y == height - 1 then
-            CenterHorizontal
-         else if y == 0 then
-            TopMid
-         else if y == height - 1 then
-            BottomMid
-         else
-            Center
-        )
+            (if y == 0 && y == height - 1 then
+                CenterHorizontal
+             else if y == 0 then
+                TopMid
+             else if y == height - 1 then
+                BottomMid
+             else
+                Center
+            )
 
 
-piecePositions : List Position
-piecePositions =
-    [ (Position 100 100)
-    , (Position 250 100)
-    , (Position 400 100)
-    , (Position 550 100)
-    , (Position 100 250)
-    , (Position 250 250)
-    , (Position 400 250)
-    , (Position 550 250)
-    , (Position 100 400)
-    , (Position 250 400)
-    , (Position 400 400)
-    , (Position 550 400)
-    ]
-
-
-pieceTypes : Array Puzzle.Piece
-pieceTypes =
-    Array.fromList
-        [ TopLeft
-        , TopMid
-        , TopMid
-        , TopRight
-        , MidLeft
-        , Center
-        , Center
-        , MidRight
-        , BottomLeft
-        , BottomMid
-        , BottomMid
-        , BottomRight
-        ]
+getPiecePositions : List { x : Int, y : Int } -> List Position
+getPiecePositions coords =
+    let
+        foo =
+            log "getPiecePositions" coords
+    in
+        List.map
+            (\coord -> Position (coord.x * (Puzzle.pieceWidth + 25) + 50) (coord.y * (Puzzle.pieceHeight + 25) + 50))
+            coords
 
 
 
@@ -409,7 +383,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         WinResize winSize ->
-            ( log "WinResize model" { model | winSize = (log "WinResize" winSize) }, Cmd.none )
+            ( {- log "WinResize model" -} { model | winSize = (log "WinResize" winSize) }, Cmd.none )
 
         DragStart id mousePosition ->
             let
@@ -478,28 +452,74 @@ update msg model =
             ( log "UrlChange model" model, Cmd.none )
 
         PositionsGenerated positions ->
-            ( { model | pieces = generatePieces positions model }, Cmd.none )
+            let
+                foo =
+                    log "handling PositionsGenerated" ()
+            in
+                ( { model | pieces = generatePieces positions (withDefault { width = 5, height = 5 } model.puzzleDimensions) model }, Cmd.none )
 
         ImageDimensions { width, height } ->
             -- Kick off PositionsGenerated cmd here
             let
-                w =
-                    log "image width" width
+                pieceWidth =
+                    log "pieceWidth"
+                        (if width > height then
+                            4
+                         else
+                            (if 4 * ((toFloat width) / (toFloat height)) >= 1 then
+                                round (4 * ((toFloat width) / (toFloat height)))
+                             else
+                                1
+                            )
+                        )
 
-                h =
-                    log "image height" height
+                pieceHeight =
+                    log "pieceHeight"
+                        (if height > width then
+                            4
+                         else
+                            (if 4 * ((toFloat height) / (toFloat width)) >= 1 then
+                                round (4 * ((toFloat height) / (toFloat width)))
+                             else
+                                1
+                            )
+                        )
             in
-                ( model, Random.generate PositionsGenerated (shuffle piecePositions) )
+                ( { model
+                    | {- pieces =
+                             generatePieces
+                                 (getPiecePositions
+                                     (generatePieceCoords
+                                         { width = pieceWidth, height = pieceHeight }
+                                     )
+                                 )
+                                 { width = pieceWidth, height = pieceHeight }
+                                 model
+                         ,
+                      -}
+                      puzzleDimensions = Just { width = pieceWidth, height = pieceHeight }
+                  }
+                , {- Cmd.none -}
+                  Random.generate
+                    PositionsGenerated
+                    (shuffle
+                        (getPiecePositions
+                            (generatePieceCoords
+                                { width = pieceWidth, height = pieceHeight }
+                            )
+                        )
+                    )
+                )
 
 
-generatePieces : List Position -> Model -> Dict Int ( Puzzle.Piece, Position, Int )
-generatePieces positions model =
+generatePieces : List Position -> { width : Int, height : Int } -> Model -> Dict Int ( Puzzle.Piece, Position, Int )
+generatePieces positions dim model =
     let
         positionsArr =
             Array.fromList positions
 
-        dim =
-            withDefault { width = 0, height = 0 } model.puzzleDimensions
+        --dim =
+        --    log "dim" (withDefault { width = 0, height = 0 } model.puzzleDimensions)
     in
         List.foldr
             (\{ x, y } dict ->
@@ -509,7 +529,7 @@ generatePieces positions model =
                 in
                     Dict.insert
                         id
-                        ( pieceType { x = x, y = y } { width = dim.width, height = dim.height }
+                        ( getPieceType { x = x, y = y } { width = dim.width, height = dim.height }
                         , withDefault (Position 0 0) (Array.get id positionsArr)
                         , id
                         )
@@ -521,15 +541,19 @@ generatePieces positions model =
 
 generatePieceCoords : { width : Int, height : Int } -> List { x : Int, y : Int }
 generatePieceCoords { width, height } =
-    List.concat
-        (List.map
-            (\x ->
-                List.map
-                    (\y -> { x = x, y = y })
-                    (range 0 (height - 1))
+    let
+        foo =
+            log "generatePieceCoords" { width = width, height = height }
+    in
+        List.concat
+            (List.map
+                (\x ->
+                    List.map
+                        (\y -> { x = x, y = y })
+                        (range 0 (height - 1))
+                )
+                (range 0 (width - 1))
             )
-            (range 0 (width - 1))
-        )
 
 
 dist : Position -> Position -> Float
@@ -546,12 +570,17 @@ port imageDimensions : ({ width : Int, height : Int } -> msg) -> Sub msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    case model.drag of
-        Just drag ->
-            Sub.batch [ Mouse.moves (DragAt drag.puzzleId), Mouse.ups (DragEnd drag.puzzleId), Window.resizes WinResize ]
+    Sub.batch
+        (List.append
+            [ Window.resizes WinResize, imageDimensions ImageDimensions ]
+            (case model.drag of
+                Just drag ->
+                    [ Mouse.moves (DragAt drag.puzzleId), Mouse.ups (DragEnd drag.puzzleId), Window.resizes WinResize ]
 
-        Nothing ->
-            Window.resizes WinResize
+                Nothing ->
+                    []
+            )
+        )
 
 
 
@@ -566,7 +595,7 @@ snapRadius =
 view : Model -> Html Msg
 view model =
     div [ style [ ( "background", "#f1f1f1" ) ] ]
-        [ p [ style [ ( "marginTop", "0" ) ] ] [ text ("img url is " ++ (backgroundImgUrl model)) ]
+        [ h2 [ style [ ( "margin", "0" ), ( "backgroundColor", "#d4d2d2" ), ( "padding", "10px 50px" ) ] ] [ text "Complete the puzzle!" ]
         , svg [ width (toString (model.winSize.width - 20)), height (toString (model.winSize.height - 40)) ]
             (List.append
                 [ defs []
@@ -663,8 +692,8 @@ backgroundImgs model =
                         [ xlinkHref (backgroundImgUrl model)
                         , preserveAspectRatio "none"
                         , patternUnits "userSpaceOnUse"
-                        , width (toString (model.numCols * Puzzle.pieceWidth))
-                        , height (toString (model.numRows * Puzzle.pieceHeight))
+                        , width (toString ((withDefault { width = 5, height = 5 } model.puzzleDimensions).width * Puzzle.pieceWidth))
+                        , height (toString ((withDefault { width = 5, height = 5 } model.puzzleDimensions).height * Puzzle.pieceHeight))
                         , x (toString pos.x)
                         , y (toString pos.y)
                         ]
@@ -678,17 +707,7 @@ backgroundImgs model =
 
 backgroundImgUrl : Model -> String
 backgroundImgUrl model =
-    case model.imgUrl of
-        Nothing ->
-            "./spongebob.png"
-
-        Just maybeUrl ->
-            case maybeUrl of
-                Nothing ->
-                    "./spongebob.png"
-
-                Just url ->
-                    url
+    withDefault "./spongebob.png" model.imgUrl
 
 
 {-| This relies on the fact that piece id can determine its x, y coord (i.e. id of 0 maps to
@@ -698,10 +717,10 @@ backgroundImgPosition : Position -> Int -> Model -> Position
 backgroundImgPosition pos id model =
     let
         rowIndex =
-            id // model.numCols
+            id // (withDefault { width = 5, height = 5 } model.puzzleDimensions).width
 
         colIndex =
-            id % model.numCols
+            id % (withDefault { width = 5, height = 5 } model.puzzleDimensions).width
 
         offsetX =
             colIndex * Puzzle.pieceWidth
