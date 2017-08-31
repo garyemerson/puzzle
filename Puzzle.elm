@@ -9,7 +9,10 @@ import List exposing (append)
 
 
 type Piece
-    = Bottom
+    = Single
+    | CenterHorizontal
+    | CenterVertical
+    | Bottom
     | Top
     | Right
     | Left
@@ -57,6 +60,15 @@ addPts pt1 pt2 =
 knobPoints : Piece -> Point -> List ( Point, Knob )
 knobPoints piece point =
     case piece of
+        Single ->
+            []
+
+        CenterHorizontal ->
+            [ ( addPts point leftKnobOffset, LeftKnob ), ( addPts point rightKnobOffset, RightKnob ) ]
+
+        CenterVertical ->
+            [ ( addPts point bottomKnobOffset, BottomKnob ), ( addPts point topKnobOffset, TopKnob ) ]
+
         Bottom ->
             [ ( addPts point topKnobOffset, TopKnob ) ]
 
@@ -141,16 +153,17 @@ pieceSvgAux left bottom right top point attrs =
 
 
 {-
-   The 13 different types of puzzle pieces are:
-    ┌───┐  ┌───┐  ┌───┐
-    │    > >    > >   │
-    └─^─┘  └─^─┘  └─^─┘                ┌───┐
-    ┌─^─┐  ┌─^─┐  ┌─^─┐  ┌───┐  ┌───┐  │   │
-    │    > >    > >   │  │    > >   │  └─^─┘
-    └─^─┘  └─^─┘  └─^─┘  └───┘  └───┘  ┌─^─┐
-    ┌─^─┐  ┌─^─┐  ┌─^─┐                │   │
-    │    > >   >  >   │                └───┘
-    └───┘  └───┘  └───┘
+   The 16 different types of puzzle pieces are:
+
+    ┌───┐  ┌───┐  ┌───┐                       ┌───┐
+    │    > >    > >   │                       │   │
+    └─^─┘  └─^─┘  └─^─┘                       └─^─┘
+    ┌─^─┐  ┌─^─┐  ┌─^─┐  ┌───┐  ┌───┐  ┌───┐  ┌─^─┐  ┌───┐
+    │    > >    > >   │  │    > >    > >   │  │   │  │   │
+    └─^─┘  └─^─┘  └─^─┘  └───┘  └───┘  └───┘  └─^─┘  └───┘
+    ┌─^─┐  ┌─^─┐  ┌─^─┐                       ┌─^─┐
+    │    > >   >  >   │                       │   │
+    └───┘  └───┘  └───┘                       └───┘
 
    The origin/point/move point of a puzzle piece is the top left corner. The svg path runs counterclockwise.
 -}
@@ -201,6 +214,15 @@ topKnobOffset =
 pieceSvg : Piece -> Point -> List (Attribute msg) -> Svg msg
 pieceSvg piece point attrs =
     case piece of
+        Single ->
+            pieceSvgAux leftLine bottomLine rightLine topLine point attrs
+
+        CenterHorizontal ->
+            pieceSvgAux leftKnob bottomLine rightKnob topLine point attrs
+
+        CenterVertical ->
+            pieceSvgAux leftLine bottomKnob rightLine topKnob point attrs
+
         Bottom ->
             --bottomSvg : Point -> List (Attribute msg) -> Svg msg
             --bottomSvg point attrs =
