@@ -85,7 +85,7 @@ init location =
         [ Task.perform WinResize Window.size
         , case imgUrlFromLocation location of
             Nothing ->
-                getImageDimensions "./spongebob.png"
+                getImageDimensions "http://garspace.com/puzzle/spongebob.png"
 
             Just imgUrl ->
                 getImageDimensions imgUrl
@@ -432,16 +432,20 @@ update msg model =
                     if dist < toFloat snapRadius then
                         let
                             ( piece2, _, foregroundIndex ) =
-                                dragPosition id model
+                                log "DragEnd snap active" dragPosition id model
                         in
                             ( piece2, (pointToPosition (Puzzle.subPts (positionToPoint position) (Puzzle.knobOffset knob))), foregroundIndex )
                     else
-                        dragPosition id model
+                        log "DragEnd dragPosition" (dragPosition id model)
             in
                 ( log "DragEnd model"
                     ({ model
                         | drag = Nothing
-                        , pieces = Dict.update id (always (Just ( piece, pos, foregroundIndex ))) model.pieces
+                        , pieces =
+                            Dict.update
+                                (log "DragEnd id" id)
+                                (always (Just ( piece, log "DragEnd update pos" pos, foregroundIndex )))
+                                model.pieces
                         , snap = Nothing
                      }
                     )
@@ -707,7 +711,7 @@ backgroundImgs model =
 
 backgroundImgUrl : Model -> String
 backgroundImgUrl model =
-    withDefault "./spongebob.png" model.imgUrl
+    withDefault "http://garspace.com/puzzle/spongebob.png" model.imgUrl
 
 
 {-| This relies on the fact that piece id can determine its x, y coord (i.e. id of 0 maps to
