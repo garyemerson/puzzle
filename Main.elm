@@ -312,24 +312,24 @@ update msg model =
                 )
 
         DragAt id mousePosition ->
-            ( log "DragAt model"
-                ({ model
-                    | drag =
-                        Maybe.map
-                            (\drag -> Drag drag.puzzleId drag.start mousePosition)
-                            model.drag
-                    , snap =
-                        (let
-                            possibleSnap =
-                                closestSnapPoint id model
-                         in
-                            if possibleSnap.dist < toFloat snapRadius then
-                                Just possibleSnap
-                            else
-                                Nothing
-                        )
-                 }
-                )
+            ( {- log "DragAt model" -}
+              ({ model
+                | drag =
+                    Maybe.map
+                        (\drag -> Drag drag.puzzleId drag.start mousePosition)
+                        model.drag
+                , snap =
+                    (let
+                        possibleSnap =
+                            closestSnapPoint id model
+                     in
+                        if possibleSnap.dist < toFloat snapRadius then
+                            Just possibleSnap
+                        else
+                            Nothing
+                    )
+               }
+              )
             , Cmd.none
             )
 
@@ -510,9 +510,15 @@ view : Model -> Html Msg
 view model =
     div [ style [ ( "background", "#f1f1f1" ) ] ]
         [ h2 [ style [ ( "margin", "0" ), ( "backgroundColor", "#d4d2d2" ), ( "padding", "10px 50px" ) ] ] [ text "Complete the puzzle!" ]
-        , svg [ width (toString (model.winSize.width - 20)), height (toString (model.winSize.height - 40)) ]
+        , svg
+            [ width (toString (model.winSize.width - 20))
+            , Html.Attributes.draggable "false"
+            , Svg.Attributes.style "user-drag: none; -moz-user-select: none; -webkit-user-drag: none;"
+            , height (toString (model.winSize.height - 40))
+            ]
             (List.append
-                [ defs []
+                [ defs
+                    []
                     (backgroundImgs
                         model
                     )
@@ -557,7 +563,12 @@ backgroundImgs : Model -> List (Svg Msg)
 backgroundImgs model =
     (map
         (\( puzzleId, _ ) ->
-            Svg.pattern [ id ("backgroundImg" ++ (toString puzzleId)), patternUnits "userSpaceOnUse", width (toString model.winSize.width), height (toString model.winSize.height) ]
+            Svg.pattern
+                [ id ("backgroundImg" ++ (toString puzzleId))
+                , patternUnits "userSpaceOnUse"
+                , width (toString model.winSize.width)
+                , height (toString model.winSize.height)
+                ]
                 (let
                     pos =
                         (case model.drag of
