@@ -5,30 +5,35 @@ body { background: #f1f1f1; font-family: calibri, helvetica, arial, sans-serif; 
 </head>
 
 <body>
+    <div id="dummy"></div>
     <script src="main.js"></script>
+    <script type="text/javascript">
+        function imgLoaded() {
+            console.log("FOOBAR image loaded")
+            var imageLoaded = document.getElementById("foobarfoobarfoobar")
+            console.log("LOADED imageLoaded is ", imageLoaded)
+            console.log("LOADED naturalHeight is ", imageLoaded.naturalHeight)
+            console.log("LOADED naturalWidth is ", imageLoaded.naturalWidth)
+            console.log("LOADED clientHeight is ", imageLoaded.clientHeight)
+            console.log("LOADED clientWidth is ", imageLoaded.clientWidth)
+
+            app.ports.imageDimensions.send({ width: imageLoaded.naturalWidth, height: imageLoaded.naturalHeight });
+        }
+    </script>
     <script type="text/javascript">
         var app = Elm.Main.fullscreen()
         app.ports.getImageDimensions.subscribe(function(url) {
             var dimensions = getImageDimensions(url);
-            app.ports.imageDimensions.send(dimensions);
+            // app.ports.imageDimensions.send(dimensions);
         });
 
         function getImageDimensions(url) {
-            var image = new Image()
-            image.src = url
-            image.id = "foobarfoobarfoobar"
-            image.style = "display: none;"
-            document.body.appendChild(image)
-
-            var imageLoaded = document.getElementById("foobarfoobarfoobar")
-            // console.log("imageLoaded is ", imageLoaded)
-            // console.log("naturalHeight is ", imageLoaded.naturalHeight)
-            // console.log("naturalWidth is ", imageLoaded.naturalWidth)
-            // console.log("clientHeight is ", imageLoaded.clientHeight)
-            // console.log("clientWidth is ", imageLoaded.clientWidth)
-
-
-            return { width: imageLoaded.naturalWidth, height: imageLoaded.naturalHeight }
+            var elem = document.createElement("img");
+            elem.setAttribute("id", "foobarfoobarfoobar");
+            elem.setAttribute("src", url);
+            elem.setAttribute("style", "display: none;");
+            elem.setAttribute("onload", "imgLoaded()");
+            document.getElementById("dummy").appendChild(elem);
         }
 
     </script>
