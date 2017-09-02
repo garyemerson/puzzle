@@ -1,9 +1,12 @@
 TODO
 ----
+* bug on mobile where a piece returns to its original position after dragging for the first time
+    * this is cause by the SingleTouch.onEnd sending a DragEnd Msg with the wrong id. Strangely, it looks like the puzzle id is always one more than it should be. Dragging the puzzle piece with the highest id doesn't exhibit this issue.
 * bug on surface where drag start causes piece to shift suddenly
     * this is caused by getting a DragAt event after a DragEnd event for the same
 * allow custom selection of puzzle dimensions (3x3, 5x7 etc.)
 ---
+* fix the need for the white background img fill to be so large
 * add foreground index to model instead of needing to go thru entire dictionary to find the max index
 * allow rotating pieces
 * allow upload of custom images
