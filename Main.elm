@@ -378,7 +378,7 @@ update msg model =
             -- Kick off PositionsGenerated cmd here
             let
                 maxDim =
-                    5
+                    4
 
                 pieceWidth =
                     log "pieceWidth"
