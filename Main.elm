@@ -15,7 +15,7 @@ import Random
 import Random.List exposing (shuffle)
 import SingleTouch
 import Svg exposing (Attribute, Svg, circle, defs, image, pattern, rect, svg)
-import Svg.Attributes exposing (cx, cy, fill, height, id, patternUnits, preserveAspectRatio, r, width, x, xlinkHref, y, fontSize)
+import Svg.Attributes exposing (cx, cy, fill, fontSize, height, id, patternUnits, preserveAspectRatio, r, width, x, xlinkHref, y)
 import Svg.Events exposing (on)
 import Task
 import Touch exposing (Coordinates)
@@ -226,8 +226,8 @@ closestSnapPoint id model =
             Nothing ->
                 Snap id 0 (Position 0 0) Puzzle.LeftKnob
 
-            Just ( pos, knob, dist ) ->
-                Snap id dist pos knob
+            Just ( pos, knob, distSqrd ) ->
+                Snap id distSqrd pos knob
 
 
 otherKnobs : Int -> Model -> List ( Position, Puzzle.Knob )
@@ -251,7 +251,7 @@ closestSnapPointAux position knobs =
         ( Position 0 0, Puzzle.LeftKnob, 0 )
         (minThird
             (List.map
-                (\( pos, knob ) -> ( pos, knob, dist pos position ))
+                (\( pos, knob ) -> ( pos, knob, distSqrd pos position ))
                 knobs
             )
         )
@@ -312,7 +312,7 @@ update msg model =
         DragAt _ mousePosition ->
             let
                 dragPuzzleId =
-                    log "model.drag.puzzleId" (withDefault -1 (Maybe.map (.puzzleId) model.drag))
+                    log "model.drag.puzzleId" (withDefault -1 (Maybe.map .puzzleId model.drag))
             in
                 ( {- log "DragAt model" -}
                   { model
@@ -322,11 +322,11 @@ update msg model =
                             model.drag
                     , snap =
                         let
-                            possibleSnap =
+                            possibleSnapSqrd =
                                 closestSnapPoint dragPuzzleId model
                         in
-                            if possibleSnap.dist < toFloat snapRadius then
-                                Just possibleSnap
+                            if possibleSnapSqrd.dist < toFloat snapRadiusSqrd then
+                                Just (Snap possibleSnapSqrd.id (sqrt possibleSnapSqrd.dist) possibleSnapSqrd.position possibleSnapSqrd.knob)
                             else
                                 Nothing
                   }
@@ -336,13 +336,13 @@ update msg model =
         DragEnd id _ ->
             let
                 dragPuzzleId =
-                    log "model.drag.puzzleId" (withDefault -1 (Maybe.map (.puzzleId) model.drag))
+                    log "model.drag.puzzleId" (withDefault -1 (Maybe.map .puzzleId model.drag))
 
                 { dist, position, knob } =
                     closestSnapPoint dragPuzzleId model
 
                 ( piece, pos, foregroundIndex ) =
-                    if dist < toFloat snapRadius then
+                    if dist < toFloat snapRadiusSqrd then
                         let
                             ( piece2, _, foregroundIndex ) =
                                 log "DragEnd snap active" dragPosition dragPuzzleId model
@@ -476,6 +476,11 @@ dist p1 p2 =
     sqrt (toFloat ((p1.x - p2.x) ^ 2 + (p1.y - p2.y) ^ 2))
 
 
+distSqrd : Position -> Position -> Float
+distSqrd p1 p2 =
+    toFloat ((p1.x - p2.x) ^ 2 + (p1.y - p2.y) ^ 2)
+
+
 
 -- SUBSCRIPTIONS
 
@@ -505,6 +510,11 @@ subscriptions model =
 snapRadius : Int
 snapRadius =
     15
+
+
+snapRadiusSqrd : Int
+snapRadiusSqrd =
+    225
 
 
 view : Model -> Html Msg
